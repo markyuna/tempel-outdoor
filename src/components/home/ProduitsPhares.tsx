@@ -2,6 +2,7 @@
 
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
@@ -77,12 +78,18 @@ export default function ProduitsPhares() {
                 href={product.href}
                 className="group block overflow-hidden rounded-[32px] bg-white shadow-sm transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl"
               >
-                <div className="overflow-hidden">
-                  <img
+                <div className="relative h-[280px] overflow-hidden">
+                  <Image
                     src={product.image}
                     alt={product.title}
-                    className="h-[280px] w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    fill
+                    sizes="(max-width: 768px) 100vw,
+                           (max-width: 1280px) 50vw,
+                           25vw"
+                    className="object-cover transition-transform duration-700 group-hover:scale-110"
                   />
+
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
                 </div>
 
                 <div className="p-6">
