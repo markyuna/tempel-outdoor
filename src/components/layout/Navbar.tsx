@@ -5,7 +5,7 @@
 import Link from "next/link";
 import { Heart, Menu, Search, ShoppingBag, User } from "lucide-react";
 
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 
 const navItems = [
   { label: "Accueil", href: "/fr" },
