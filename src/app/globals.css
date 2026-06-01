@@ -126,5 +126,10 @@
   }
   html {
     @apply font-sans;
+    scroll-behavior: smooth;
+  }
+  video {
+    pointer-events: none;
   }
 }
+
