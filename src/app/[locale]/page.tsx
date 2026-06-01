@@ -4,7 +4,9 @@ import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 
 import HeroSection from "@/components/home/HeroSection";
-import UniversSection from "@/components/home/UniverseSection";
+import UniversSection from "@/components/home/UniversSection";
+import TrustSection from "@/components/home/TrustSection";
+import ProduitsPhares from "@/components/home/ProduitsPhares";
 
 export default function HomePage() {
   return (
@@ -12,6 +14,10 @@ export default function HomePage() {
       <HeroSection />
 
       <UniversSection />
+
+      <TrustSection />
+
+      <ProduitsPhares />
 
       <section className="bg-black px-6 py-24 text-white">
         <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-2 lg:items-center">
