@@ -13,7 +13,7 @@ export default function AdminPage() {
 
       <div className="mt-10 grid gap-6 md:grid-cols-3">
         <Link
-          href="/admin/produits"
+          href="/admin/products"
           className="rounded-3xl border bg-white p-8 shadow-sm hover:shadow-xl"
         >
           Produits

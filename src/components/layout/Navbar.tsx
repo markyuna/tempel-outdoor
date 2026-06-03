@@ -1,3 +1,5 @@
+// src/components/layout/Navbar.tsx
+
 "use client";
 
 import Link from "next/link";
@@ -18,7 +20,6 @@ const navItems = [
   { label: "Accueil", href: "/fr" },
   {
     label: "Bien-être",
-    href: "/fr/bien-etre",
     children: [
       { label: "Spa extérieur", href: "/fr/bien-etre/spa" },
       { label: "Sauna bois", href: "/fr/bien-etre/sauna" },
@@ -26,7 +27,6 @@ const navItems = [
   },
   {
     label: "Loisirs",
-    href: "/fr/loisirs",
     children: [
       { label: "Baby-foot extérieur", href: "/fr/loisirs/baby-foot" },
       { label: "Billard convertible", href: "/fr/loisirs/billard" },
@@ -61,14 +61,14 @@ export default function Navbar() {
         <nav className="hidden items-center gap-8 lg:flex">
           {navItems.map((item) =>
             item.children ? (
-              <div key={item.href} className="group relative">
-                <Link
-                  href={item.href}
+              <div key={item.label} className="group relative">
+                <button
+                  type="button"
                   className="flex items-center gap-1 text-sm font-medium uppercase tracking-wide text-white/80 transition hover:text-[#d7b86e]"
                 >
                   {item.label}
                   <ChevronDown className="h-4 w-4 transition duration-300 group-hover:rotate-180" />
-                </Link>
+                </button>
 
                 <div className="pointer-events-none absolute left-1/2 top-full z-50 mt-5 w-64 -translate-x-1/2 translate-y-2 rounded-3xl border border-white/10 bg-[#0b0b0b]/95 p-3 opacity-0 shadow-2xl backdrop-blur-xl transition-all duration-300 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100">
                   <div className="absolute -top-5 left-0 h-5 w-full" />
@@ -131,15 +131,21 @@ export default function Navbar() {
         <div className="border-t border-white/10 bg-black px-6 py-6 lg:hidden">
           <nav className="flex flex-col gap-5">
             {navItems.map((item) => (
-              <div key={item.href}>
-                <Link
-                  href={item.href}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center justify-between text-sm font-medium uppercase tracking-wide text-white/80 transition hover:text-[#d7b86e]"
-                >
-                  {item.label}
-                  {item.children && <ChevronDown className="h-4 w-4" />}
-                </Link>
+              <div key={item.label}>
+                {item.children ? (
+                  <div className="flex items-center justify-between text-sm font-medium uppercase tracking-wide text-white/80">
+                    {item.label}
+                    <ChevronDown className="h-4 w-4" />
+                  </div>
+                ) : (
+                  <Link
+                    href={item.href}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center justify-between text-sm font-medium uppercase tracking-wide text-white/80 transition hover:text-[#d7b86e]"
+                  >
+                    {item.label}
+                  </Link>
+                )}
 
                 {item.children && (
                   <div className="mt-3 flex flex-col gap-3 border-l border-white/10 pl-4">
@@ -158,21 +164,6 @@ export default function Navbar() {
               </div>
             ))}
           </nav>
-
-          <div className="mt-8 grid grid-cols-4 gap-3 border-t border-white/10 pt-6">
-            <Button variant="ghost" size="icon">
-              <Search className="h-5 w-5" />
-            </Button>
-            <Button variant="ghost" size="icon">
-              <Heart className="h-5 w-5" />
-            </Button>
-            <Button variant="ghost" size="icon">
-              <User className="h-5 w-5" />
-            </Button>
-            <Button variant="ghost" size="icon">
-              <ShoppingBag className="h-5 w-5" />
-            </Button>
-          </div>
         </div>
       )}
     </header>

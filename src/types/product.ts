@@ -1,63 +1,97 @@
-export type ProductCategory =
-  | "spa"
-  | "sauna"
-  | "baby-foot"
-  | "billard"
-  | "fitness";
+export type ProductStatus = "active" | "draft" | "archived";
 
-export type ProductStatus = "draft" | "active" | "archived";
+export type ProductMediaType = "image" | "video";
 
-export type ProductImage = {
+export interface ProductMedia {
   id: string;
-  productId: string;
+  product_id: string;
   url: string;
+  type: ProductMediaType;
   alt: string | null;
-  isFeatured: boolean;
+  is_featured: boolean;
   position: number;
-};
+  created_at?: string;
+}
 
-export type ProductOption = {
+export interface ProductOption {
   id: string;
-  productId: string;
+  product_id: string;
   name: string;
   values: string[];
   required: boolean;
   position: number;
-};
+  created_at?: string;
+}
 
-export type ProductSpecItem = {
+export interface ProductSpecSection {
   id: string;
-  sectionId: string;
+  product_id: string;
+  title: string;
+  position: number;
+  created_at?: string;
+  items?: ProductSpecItem[];
+}
+
+export interface ProductSpecItem {
+  id: string;
+  section_id: string;
   label: string | null;
   value: string;
   position: number;
-};
+  created_at?: string;
+}
 
-export type ProductSpecSection = {
+export interface Product {
   id: string;
-  productId: string;
-  title: string;
-  position: number;
-  items: ProductSpecItem[];
-};
 
-export type Product = {
-  id: string;
   slug: string;
   name: string;
-  shortDescription: string | null;
+
+  universe: string | null;
+  category: string | null;
+
+  short_description: string | null;
   description: string | null;
-  category: ProductCategory;
+
   price: number;
-  compareAtPrice: number | null;
+  compare_at_price: number | null;
+
   featured: boolean;
   status: ProductStatus;
+
   stock: number;
-  deliveryTime: string | null;
+  delivery_time: string | null;
   warranty: string | null;
-  images: ProductImage[];
-  options: ProductOption[];
-  specSections: ProductSpecSection[];
-  createdAt: string;
-  updatedAt: string;
-};
+
+  media?: ProductMedia[];
+  options?: ProductOption[];
+  spec_sections?: ProductSpecSection[];
+
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface CreateProductInput {
+  slug: string;
+  name: string;
+
+  universe?: string;
+  category?: string;
+
+  short_description?: string;
+  description?: string;
+
+  price: number;
+  compare_at_price?: number;
+
+  featured?: boolean;
+  status?: ProductStatus;
+
+  stock?: number;
+  delivery_time?: string;
+  warranty?: string;
+}
+
+export interface UpdateProductInput extends Partial<CreateProductInput> {
+  id: string;
+}
