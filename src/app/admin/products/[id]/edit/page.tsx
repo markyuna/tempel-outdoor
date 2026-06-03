@@ -1,6 +1,8 @@
+// src/app/admin/products/[id]/edit/page.tsx
+
 import Image from "next/image";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import ProductMediaUploader from "@/components/admin/ProductMediaUploader";
 import ProductOptionsEditor from "@/components/admin/ProductOptionsEditor";
@@ -21,7 +23,6 @@ type PageProps = {
 
 export default async function AdminProductEditPage({ params }: PageProps) {
   const { id } = await params;
-
   const supabase = await createClient();
 
   const { data: product, error: productError } = await supabase
@@ -34,29 +35,67 @@ export default async function AdminProductEditPage({ params }: PageProps) {
     notFound();
   }
 
-  const [
-    { data: media },
-    { data: options },
-    { data: sections },
-  ] = await Promise.all([
-    supabase
-      .from("product_media")
-      .select("*")
-      .eq("product_id", id)
-      .order("position", { ascending: true }),
+  async function updateProduct(formData: FormData) {
+    "use server";
 
-    supabase
-      .from("product_options")
-      .select("*")
-      .eq("product_id", id)
-      .order("position", { ascending: true }),
+    const supabase = await createClient();
 
-    supabase
-      .from("product_spec_sections")
-      .select("*")
-      .eq("product_id", id)
-      .order("position", { ascending: true }),
-  ]);
+    const name = String(formData.get("name") || "");
+    const slug = String(formData.get("slug") || "");
+    const universe = String(formData.get("universe") || "");
+    const category = String(formData.get("category") || "");
+    const price = Number(formData.get("price") || 0);
+    const compareAtPriceValue = String(formData.get("compare_at_price") || "");
+    const stock = Number(formData.get("stock") || 0);
+    const status = String(formData.get("status") || "draft");
+    const featured = formData.get("featured") === "true";
+    const deliveryTime = String(formData.get("delivery_time") || "");
+    const shortDescription = String(formData.get("short_description") || "");
+    const description = String(formData.get("description") || "");
+
+    await supabase
+      .from("products")
+      .update({
+        name,
+        slug,
+        universe,
+        category,
+        price,
+        compare_at_price: compareAtPriceValue
+          ? Number(compareAtPriceValue)
+          : null,
+        stock,
+        status,
+        featured,
+        delivery_time: deliveryTime || null,
+        short_description: shortDescription || null,
+        description: description || null,
+      })
+      .eq("id", id);
+
+    redirect(`/admin/products/${id}/edit`);
+  }
+
+  const [{ data: media }, { data: options }, { data: sections }] =
+    await Promise.all([
+      supabase
+        .from("product_media")
+        .select("*")
+        .eq("product_id", id)
+        .order("position", { ascending: true }),
+
+      supabase
+        .from("product_options")
+        .select("*")
+        .eq("product_id", id)
+        .order("position", { ascending: true }),
+
+      supabase
+        .from("product_spec_sections")
+        .select("*")
+        .eq("product_id", id)
+        .order("position", { ascending: true }),
+    ]);
 
   const sectionIds = sections?.map((section) => section.id) ?? [];
 
@@ -84,7 +123,7 @@ export default async function AdminProductEditPage({ params }: PageProps) {
         <div className="mb-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <Link
-              href="/admin/produits"
+              href="/admin/products"
               className="text-sm font-medium text-[#b87932] transition hover:text-black"
             >
               ← Retour aux produits
@@ -101,7 +140,7 @@ export default async function AdminProductEditPage({ params }: PageProps) {
           </div>
 
           <Link
-            href={`/fr/${product.universe}/${product.category}/${product.slug}`}
+            href={`/fr/products/${product.slug}`}
             className="rounded-full bg-black px-6 py-3 text-sm font-semibold text-white transition hover:bg-neutral-800"
           >
             Voir côté boutique
@@ -109,62 +148,99 @@ export default async function AdminProductEditPage({ params }: PageProps) {
         </div>
 
         <section className="grid gap-8 lg:grid-cols-[1fr_0.8fr]">
-          <div className="rounded-3xl border bg-white p-8 shadow-sm">
-            <h2 className="text-xl font-semibold">
-              Informations générales
-            </h2>
+          <form
+            action={updateProduct}
+            className="rounded-3xl border bg-white p-8 shadow-sm"
+          >
+            <h2 className="text-xl font-semibold">Informations générales</h2>
 
             <div className="mt-8 grid gap-5">
-              <Field label="Nom du produit" value={product.name} />
-              <Field label="Slug" value={product.slug} />
+              <Input label="Nom du produit" name="name" defaultValue={product.name} />
+              <Input label="Slug" name="slug" defaultValue={product.slug} />
 
               <div className="grid gap-5 md:grid-cols-2">
-                <Field label="Univers" value={product.universe ?? "—"} />
-                <Field label="Catégorie" value={product.category ?? "—"} />
+                <Input
+                  label="Univers"
+                  name="universe"
+                  defaultValue={product.universe ?? ""}
+                />
+                <Input
+                  label="Catégorie"
+                  name="category"
+                  defaultValue={product.category ?? ""}
+                />
               </div>
 
               <div className="grid gap-5 md:grid-cols-3">
-                <Field label="Prix" value={`${product.price} €`} />
-                <Field
-                  label="Prix barré"
-                  value={
-                    product.compare_at_price
-                      ? `${product.compare_at_price} €`
-                      : "—"
-                  }
+                <Input
+                  label="Prix"
+                  name="price"
+                  type="number"
+                  defaultValue={product.price ?? ""}
                 />
-                <Field label="Stock" value={`${product.stock ?? 0}`} />
+                <Input
+                  label="Prix barré"
+                  name="compare_at_price"
+                  type="number"
+                  defaultValue={product.compare_at_price ?? ""}
+                />
+                <Input
+                  label="Stock"
+                  name="stock"
+                  type="number"
+                  defaultValue={product.stock ?? 0}
+                />
               </div>
 
               <div className="grid gap-5 md:grid-cols-2">
-                <Field
+                <Select
                   label="Statut"
-                  value={product.status ?? "draft"}
+                  name="status"
+                  defaultValue={product.status ?? "draft"}
+                  options={[
+                    { label: "Draft", value: "draft" },
+                    { label: "Active", value: "active" },
+                    { label: "Archived", value: "archived" },
+                  ]}
                 />
-                <Field
+
+                <Select
                   label="Produit mis en avant"
-                  value={product.featured ? "Oui" : "Non"}
+                  name="featured"
+                  defaultValue={product.featured ? "true" : "false"}
+                  options={[
+                    { label: "Non", value: "false" },
+                    { label: "Oui", value: "true" },
+                  ]}
                 />
               </div>
 
-              <Field
+              <Input
                 label="Délai de livraison"
-                value={product.delivery_time ?? "—"}
+                name="delivery_time"
+                defaultValue={product.delivery_time ?? ""}
               />
 
-              <Field
+              <Textarea
                 label="Description courte"
-                value={product.short_description ?? "—"}
-                multiline
+                name="short_description"
+                defaultValue={product.short_description ?? ""}
               />
 
-              <Field
+              <Textarea
                 label="Description complète"
-                value={product.description ?? "—"}
-                multiline
+                name="description"
+                defaultValue={product.description ?? ""}
               />
+
+              <button
+                type="submit"
+                className="mt-4 rounded-full bg-black px-8 py-4 text-sm font-semibold text-white transition hover:bg-[#c76b2a]"
+              >
+                Enregistrer les modifications
+              </button>
             </div>
-          </div>
+          </form>
 
           <div className="rounded-3xl border bg-white p-8 shadow-sm">
             <h2 className="text-xl font-semibold">Aperçu médias</h2>
@@ -218,38 +294,93 @@ export default async function AdminProductEditPage({ params }: PageProps) {
         </div>
 
         <div className="mt-8">
-          <ProductSpecsEditor
-            productId={id}
-            sections={sectionsWithItems}
-          />
+          <ProductSpecsEditor productId={id} sections={sectionsWithItems} />
         </div>
       </div>
     </main>
   );
 }
 
-function Field({
+function Input({
   label,
-  value,
-  multiline = false,
+  name,
+  defaultValue,
+  type = "text",
 }: {
   label: string;
-  value: string;
-  multiline?: boolean;
+  name: string;
+  defaultValue: string | number;
+  type?: string;
 }) {
   return (
-    <div>
-      <p className="mb-2 text-sm font-medium text-[#5f5a54]">{label}</p>
+    <label className="block">
+      <span className="mb-2 block text-sm font-medium text-[#5f5a54]">
+        {label}
+      </span>
+      <input
+        name={name}
+        type={type}
+        defaultValue={defaultValue}
+        className="w-full rounded-2xl border bg-[#f7f4ee] px-4 py-3 text-sm outline-none transition focus:border-black focus:bg-white"
+      />
+    </label>
+  );
+}
 
-      <div
-        className={
-          multiline
-            ? "min-h-28 rounded-2xl border bg-[#f7f4ee] p-4 text-sm leading-7"
-            : "rounded-2xl border bg-[#f7f4ee] px-4 py-3 text-sm"
-        }
+function Textarea({
+  label,
+  name,
+  defaultValue,
+}: {
+  label: string;
+  name: string;
+  defaultValue: string;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-sm font-medium text-[#5f5a54]">
+        {label}
+      </span>
+      <textarea
+        name={name}
+        defaultValue={defaultValue}
+        rows={6}
+        className="w-full rounded-2xl border bg-[#f7f4ee] px-4 py-3 text-sm leading-7 outline-none transition focus:border-black focus:bg-white"
+      />
+    </label>
+  );
+}
+
+function Select({
+  label,
+  name,
+  defaultValue,
+  options,
+}: {
+  label: string;
+  name: string;
+  defaultValue: string;
+  options: {
+    label: string;
+    value: string;
+  }[];
+}) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-sm font-medium text-[#5f5a54]">
+        {label}
+      </span>
+      <select
+        name={name}
+        defaultValue={defaultValue}
+        className="w-full rounded-2xl border bg-[#f7f4ee] px-4 py-3 text-sm outline-none transition focus:border-black focus:bg-white"
       >
-        {value}
-      </div>
-    </div>
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
