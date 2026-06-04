@@ -1,3 +1,5 @@
+// src/app/[locale]/products/[slug]/page.tsx
+
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -13,6 +15,7 @@ import {
 
 import ProductPurchaseSection from "@/components/products/ProductPurchaseSection";
 import ProductSpecs from "@/components/products/ProductSpecs";
+import ProductStoryVideo from "@/components/products/ProductStoryVideo";
 import { createClient } from "@/lib/supabase/server";
 
 type Props = {
@@ -68,6 +71,14 @@ type Product = {
   product_media: ProductMedia[] | null;
   product_variants: ProductVariant[] | null;
   product_spec_sections: ProductSpecSection[] | null;
+};
+
+const categoryVideos: Record<string, string> = {
+  spa: "/videos/spa.mp4",
+  sauna: "/videos/sauna.mp4",
+  billard: "/videos/billard-tempel.mp4",
+  "baby-foot": "/videos/fabrication.mp4",
+  fitness: "/videos/fitness.mp4",
 };
 
 async function getProduct(slug: string): Promise<Product | null> {
@@ -166,6 +177,9 @@ export default async function ProductPage({ params }: Props) {
   const hasDiscount =
     product.compare_at_price && product.compare_at_price > product.price;
 
+  const storyVideoUrl =
+    categoryVideos[product.category] ?? "/videos/tempel-outdoor.mp4";
+
   return (
     <main className="min-h-screen bg-[#f7f4ee] text-[#181512]">
       <section className="px-6 pb-20 pt-4">
@@ -185,7 +199,8 @@ export default async function ProductPage({ params }: Props) {
               productName={product.name}
             />
 
-              <aside className="rounded-[2rem] border border-black/10 bg-white p-6 shadow-sm lg:sticky lg:top-24">              <div className="flex flex-wrap items-center gap-3">
+            <aside className="rounded-[2rem] border border-black/10 bg-white p-6 shadow-sm lg:sticky lg:top-24">
+              <div className="flex flex-wrap items-center gap-3">
                 <span className="rounded-full bg-[#d7b86e] px-4 py-2 text-xs font-bold uppercase tracking-[0.18em]">
                   {getCategoryLabel(product.category)}
                 </span>
@@ -201,7 +216,7 @@ export default async function ProductPage({ params }: Props) {
                 </span>
               </div>
 
-             <h1 className="mt-4 text-3xl font-semibold leading-tight tracking-tight md:text-4xl">
+              <h1 className="mt-4 text-3xl font-semibold leading-tight tracking-tight md:text-4xl">
                 {product.name}
               </h1>
 
@@ -279,21 +294,12 @@ export default async function ProductPage({ params }: Props) {
             </aside>
           </div>
 
-          <section className="mt-20 grid gap-8 lg:grid-cols-[0.75fr_1.25fr]">
-            <div className="rounded-[2rem] bg-black p-8 text-white">
-              <p className="text-xs font-bold uppercase tracking-[0.35em] text-[#d7b86e]">
-                Tempel Outdoor
-              </p>
-
-              <h2 className="mt-4 text-3xl font-semibold">
-                Un produit pensé pour sublimer votre extérieur.
-              </h2>
-
-              <p className="mt-5 text-sm leading-7 text-white/70">
-                Design, confort et durabilité pour créer un espace extérieur
-                élégant, fonctionnel et agréable au quotidien.
-              </p>
-            </div>
+          <section className="mt-20 grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-stretch">
+            <ProductStoryVideo
+              videoUrl={storyVideoUrl}
+              title="L'excellence du savoir-faire français."
+              description="Chaque produit est sélectionné pour offrir une expérience extérieure haut de gamme, alliant design, robustesse et confort."
+            />
 
             <ProductSpecs sections={product.product_spec_sections} />
           </section>
