@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import ProductMediaGallery from "@/components/products/ProductMediaGallery";
 import ProductVariantSelector from "@/components/products/ProductVariantSelector";
@@ -33,21 +33,36 @@ export default function ProductPurchaseSection({
   variants,
   productName,
 }: Props) {
+  const sortedVariants = useMemo(
+    () => [...variants].sort((a, b) => (a.position ?? 0) - (b.position ?? 0)),
+    [variants]
+  );
+
   const [selectedVariant, setSelectedVariant] =
-    useState<ProductVariant | null>(variants[0] ?? null);
+    useState<ProductVariant | null>(sortedVariants[0] ?? null);
+
+  const [selectedMediaId, setSelectedMediaId] = useState<string | null>(
+    sortedVariants[0]?.image_media_id ?? null
+  );
+
+  function handleSelectVariant(variant: ProductVariant) {
+    setSelectedVariant(variant);
+    setSelectedMediaId(variant.image_media_id);
+  }
 
   return (
-    <div>
+    <div className="w-full max-w-[640px]">
       <ProductMediaGallery
         media={media}
         productName={productName}
-        selectedMediaId={selectedVariant?.image_media_id}
+        selectedMediaId={selectedMediaId}
+        onSelectMedia={setSelectedMediaId}
       />
 
       <ProductVariantSelector
-        variants={variants}
+        variants={sortedVariants}
         selectedVariantId={selectedVariant?.id}
-        onSelect={setSelectedVariant}
+        onSelect={handleSelectVariant}
       />
     </div>
   );

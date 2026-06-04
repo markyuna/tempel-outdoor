@@ -34,6 +34,22 @@ type Props = {
   locale?: string;
 };
 
+const categoryVideos: Record<string, string> = {
+  billard: "/videos/billard-tempel.mp4",
+  "baby-foot": "/videos/baby-foot-tempel.mp4",
+  spa: "/videos/spa-tempel.mp4",
+  sauna: "/videos/sauna-tempel.mp4",
+  fitness: "/videos/fitness-tempel.mp4",
+};
+
+function formatPrice(value: number) {
+  return new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency: "EUR",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
 export default async function CategoryProductsPage({
   universe,
   category,
@@ -76,25 +92,41 @@ export default async function CategoryProductsPage({
   }
 
   const products = (data ?? []) as Product[];
+  const videoSrc = categoryVideos[category];
 
   return (
     <main className="min-h-screen bg-[#f7f4ee] text-black">
-      <section className="px-6 pb-24 pt-32">
-        <div className="mx-auto max-w-7xl">
-          <p className="text-sm font-semibold uppercase tracking-[0.35em] text-[#c76b2a]">
-            {eyebrow}
-          </p>
+      <section className="relative min-h-screen overflow-hidden bg-black">
+        {videoSrc ? (
+          <video
+            className="absolute inset-0 h-full w-full object-cover"
+            src={videoSrc}
+            autoPlay
+            muted
+            loop
+            playsInline
+          />
+        ) : null}
 
-          <h1 className="mt-4 text-5xl font-semibold tracking-tight md:text-7xl">
-            {title}
-          </h1>
+        <div className="absolute inset-0 bg-black/55" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/25 to-[#f7f4ee]" />
 
-          <p className="mt-6 max-w-3xl text-lg leading-8 text-neutral-600">
-            {description}
-          </p>
+        <div className="relative mx-auto flex min-h-screen max-w-7xl flex-col justify-end px-6 pb-20 pt-15">
+          <div className="max-w-4xl text-white">
+            <p className="text-sm font-semibold uppercase tracking-[0.45em] text-[#d7b86e]">
+              {eyebrow}
+            </p>
+
+            <h1 className="mt-4 text-3xl font-semibold tracking-tight md:text-6xl lg:text-5xl">
+              {title}
+            </h1>
+            <p className="mt-5 max-w-2xl text-base leading-7 text-white/80 md:text-lg">
+              {description}
+            </p>
+          </div>
 
           {products.length > 0 ? (
-            <div className="mt-14 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-10 grid gap-7 md:grid-cols-2 lg:grid-cols-3">
               {products.map((product) => {
                 const media = [...(product.product_media ?? [])].sort(
                   (a, b) => (a.position ?? 0) - (b.position ?? 0)
@@ -106,7 +138,7 @@ export default async function CategoryProductsPage({
                   <Link
                     key={product.id}
                     href={`/${locale}/products/${product.slug}`}
-                    className="group overflow-hidden rounded-[2rem] border border-black/10 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
+                    className="group overflow-hidden rounded-[2rem] border border-white/15 bg-white/95 shadow-2xl backdrop-blur transition duration-300 hover:-translate-y-1 hover:bg-white"
                   >
                     <div className="relative aspect-[4/3] overflow-hidden bg-neutral-100">
                       {image?.url ? (
@@ -120,19 +152,19 @@ export default async function CategoryProductsPage({
                           Aucun visuel
                         </div>
                       )}
+
+                      <div className="absolute left-4 top-4 rounded-full bg-black/75 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white backdrop-blur">
+                        {product.category}
+                      </div>
                     </div>
 
                     <div className="p-6">
-                      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#c76b2a]">
-                        {product.category}
-                      </p>
-
-                      <h2 className="mt-3 text-2xl font-semibold">
+                      <h2 className="text-2xl font-semibold tracking-tight">
                         {product.name}
                       </h2>
 
                       {product.short_description ? (
-                        <p className="mt-3 line-clamp-3 text-sm leading-6 text-neutral-600">
+                        <p className="mt-3 line-clamp-2 text-sm leading-6 text-neutral-600">
                           {product.short_description}
                         </p>
                       ) : null}
@@ -141,16 +173,16 @@ export default async function CategoryProductsPage({
                         <div>
                           {product.compare_at_price ? (
                             <p className="text-sm text-neutral-400 line-through">
-                              {product.compare_at_price} €
+                              {formatPrice(product.compare_at_price)}
                             </p>
                           ) : null}
 
                           <p className="text-2xl font-semibold">
-                            {product.price} €
+                            {formatPrice(product.price)}
                           </p>
                         </div>
 
-                        <span className="rounded-full bg-black px-4 py-2 text-xs font-semibold text-white">
+                        <span className="rounded-full bg-black px-4 py-2 text-xs font-semibold text-white transition group-hover:bg-[#c76b2a]">
                           Voir le produit
                         </span>
                       </div>
@@ -160,7 +192,7 @@ export default async function CategoryProductsPage({
               })}
             </div>
           ) : (
-            <div className="mt-14 rounded-[2rem] border border-dashed border-black/20 bg-white p-10 text-center">
+            <div className="mt-14 rounded-[2rem] border border-white/20 bg-white/90 p-10 text-center backdrop-blur">
               <h2 className="text-2xl font-semibold">
                 Aucun produit disponible
               </h2>

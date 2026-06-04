@@ -37,52 +37,51 @@ export default function ProductVariantSelector({
   selectedVariantId,
   onSelect,
 }: Props) {
-  const sortedVariants = [...variants].sort(
-    (a, b) => (a.position ?? 0) - (b.position ?? 0)
-  );
-
-  if (sortedVariants.length === 0) return null;
+  if (variants.length === 0) return null;
 
   return (
-    <div className="mt-8 border-t border-black/10 pt-6">
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-neutral-500">
+    <div className="mt-4 rounded-[1.35rem] border border-black/10 bg-white/75 p-4 shadow-sm">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="shrink-0">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.32em] text-neutral-500">
             Couleur
           </p>
-          <p className="mt-1 text-sm text-neutral-600">
+          <p className="mt-1 text-xs text-neutral-600">
             Sélectionnez une finition
           </p>
         </div>
-      </div>
 
-      <div className="mt-4 flex flex-wrap gap-3">
-        {sortedVariants.map((variant) => {
-          const isSelected = variant.id === selectedVariantId;
-          const label = COLOR_LABELS[variant.value] || variant.value;
-          const color = COLOR_HEX[variant.value] || "#ddd";
+        <div className="flex flex-wrap justify-start gap-2 sm:justify-end">
+          {variants.map((variant) => {
+            const isSelected = variant.id === selectedVariantId;
+            const label = COLOR_LABELS[variant.value] || variant.value;
+            const color = COLOR_HEX[variant.value] || "#ddd";
 
-          return (
-            <button
-              key={variant.id}
-              type="button"
-              onClick={() => onSelect(variant)}
-              className={`group flex items-center gap-3 rounded-full border px-4 py-2 text-sm font-semibold transition ${
-                isSelected
-                  ? "border-black bg-black text-white"
-                  : "border-black/10 bg-white text-black hover:border-black/40"
-              }`}
-            >
-              <span
-                className={`h-5 w-5 rounded-full border ${
-                  variant.value === "blanc" ? "border-black/20" : "border-white/40"
+            return (
+              <button
+                key={variant.id}
+                type="button"
+                onClick={() => onSelect(variant)}
+                aria-pressed={isSelected}
+                className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-semibold transition ${
+                  isSelected
+                    ? "border-black bg-black text-white"
+                    : "border-black/10 bg-white text-black hover:border-black/40"
                 }`}
-                style={{ backgroundColor: color }}
-              />
-              {label}
-            </button>
-          );
-        })}
+              >
+                <span
+                  className={`h-4 w-4 rounded-full border ${
+                    variant.value === "blanc"
+                      ? "border-black/20"
+                      : "border-white/50"
+                  }`}
+                  style={{ backgroundColor: color }}
+                />
+                {label}
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

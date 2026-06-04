@@ -168,7 +168,7 @@ export default async function ProductPage({ params }: Props) {
 
   return (
     <main className="min-h-screen bg-[#f7f4ee] text-[#181512]">
-      <section className="px-6 pb-24 pt-32">
+      <section className="px-6 pb-20 pt-4">
         <div className="mx-auto max-w-7xl">
           <Link
             href={`/${locale}/${product.universe}/${product.category}`}
@@ -185,8 +185,7 @@ export default async function ProductPage({ params }: Props) {
               productName={product.name}
             />
 
-            <aside className="rounded-[2.5rem] border border-black/10 bg-white p-7 shadow-sm lg:sticky lg:top-28">
-              <div className="flex flex-wrap items-center gap-3">
+              <aside className="rounded-[2rem] border border-black/10 bg-white p-6 shadow-sm lg:sticky lg:top-24">              <div className="flex flex-wrap items-center gap-3">
                 <span className="rounded-full bg-[#d7b86e] px-4 py-2 text-xs font-bold uppercase tracking-[0.18em]">
                   {getCategoryLabel(product.category)}
                 </span>
@@ -202,18 +201,18 @@ export default async function ProductPage({ params }: Props) {
                 </span>
               </div>
 
-              <h1 className="mt-6 text-4xl font-semibold tracking-tight md:text-5xl">
+             <h1 className="mt-4 text-3xl font-semibold leading-tight tracking-tight md:text-4xl">
                 {product.name}
               </h1>
 
               {product.short_description ? (
-                <p className="mt-5 text-lg leading-8 text-neutral-600">
+                <p className="mt-4 text-base leading-7 text-neutral-600">
                   {product.short_description}
                 </p>
               ) : null}
 
               <div className="mt-8 flex items-end gap-4">
-                <p className="text-4xl font-bold">
+                <p className="text-3xl font-bold">
                   {formatPrice(Number(product.price))}
                 </p>
 
