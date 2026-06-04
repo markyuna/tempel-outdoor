@@ -59,11 +59,15 @@ export default function ProductPurchaseSection({
         onSelectMedia={setSelectedMediaId}
       />
 
-      <ProductVariantSelector
-        variants={sortedVariants}
-        selectedVariantId={selectedVariant?.id}
-        onSelect={handleSelectVariant}
-      />
+      {sortedVariants.length > 0 && (
+        <div className="mt-6">
+          <ProductVariantSelector
+            variants={sortedVariants}
+            selectedVariantId={selectedVariant?.id}
+            onSelect={handleSelectVariant}
+          />
+        </div>
+      )}
     </div>
   );
 }

@@ -12,6 +12,15 @@ type Props = {
   options?: ProductOption[];
 };
 
+function formatOptionValue(label: string, price: string) {
+  const cleanLabel = label.trim();
+  const cleanPrice = price.trim();
+
+  if (!cleanPrice) return cleanLabel;
+
+  return `${cleanLabel} | ${cleanPrice}`;
+}
+
 export default function ProductOptionEditor({
   productId,
   options = [],
@@ -20,20 +29,41 @@ export default function ProductOptionEditor({
   const supabase = createClient();
 
   const [name, setName] = useState("");
-  const [values, setValues] = useState("");
+  const [label, setLabel] = useState("");
+  const [price, setPrice] = useState("");
+  const [values, setValues] = useState<string[]>([]);
   const [required, setRequired] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  function handleAddValue() {
+    const cleanLabel = label.trim();
+
+    if (!cleanLabel) {
+      alert("Ajoute une dimension ou une valeur.");
+      return;
+    }
+
+    setValues((currentValues) => [
+      ...currentValues,
+      formatOptionValue(cleanLabel, price),
+    ]);
+
+    setLabel("");
+    setPrice("");
+  }
+
+  function handleRemoveValue(valueToRemove: string) {
+    setValues((currentValues) =>
+      currentValues.filter((value) => value !== valueToRemove)
+    );
+  }
 
   async function handleAddOption(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const cleanName = name.trim();
-    const cleanValues = values
-      .split(",")
-      .map((value) => value.trim())
-      .filter(Boolean);
 
-    if (!cleanName || cleanValues.length === 0) {
+    if (!cleanName || values.length === 0) {
       alert("Ajoute un nom d’option et au moins une valeur.");
       return;
     }
@@ -43,7 +73,7 @@ export default function ProductOptionEditor({
     const { error } = await supabase.from("product_options").insert({
       product_id: productId,
       name: cleanName,
-      values: cleanValues,
+      values,
       required,
       position: options.length,
     });
@@ -56,8 +86,11 @@ export default function ProductOptionEditor({
     }
 
     setName("");
-    setValues("");
+    setLabel("");
+    setPrice("");
+    setValues([]);
     setRequired(false);
+
     router.refresh();
   }
 
@@ -80,15 +113,13 @@ export default function ProductOptionEditor({
 
   return (
     <section className="rounded-3xl border bg-white p-8">
-      <div className="flex items-start justify-between gap-6">
-        <div>
-          <h2 className="text-xl font-semibold">Options du produit</h2>
+      <div>
+        <h2 className="text-xl font-semibold">Options du produit</h2>
 
-          <p className="mt-2 text-sm text-gray-500">
-            Ajoute les choix disponibles pour ce produit : couleur, plateau,
-            tapis, finition, taille, etc.
-          </p>
-        </div>
+        <p className="mt-2 text-sm text-gray-500">
+          Ajoute les choix disponibles pour ce produit : dimensions, couleur,
+          finition, taille, etc. Pour les dimensions, ajoute aussi le prix.
+        </p>
       </div>
 
       <form onSubmit={handleAddOption} className="mt-8 grid gap-5">
@@ -101,28 +132,62 @@ export default function ProductOptionEditor({
             type="text"
             value={name}
             onChange={(event) => setName(event.target.value)}
-            placeholder="Ex: Coloris du tapis"
+            placeholder="Ex: Dimensions"
             className="h-12 w-full rounded-2xl border px-4 outline-none transition focus:border-black"
           />
         </div>
 
-        <div>
-          <label className="mb-2 block text-sm font-medium">
-            Valeurs disponibles
-          </label>
+        <div className="grid gap-4 md:grid-cols-[1fr_180px_auto] md:items-end">
+          <div>
+            <label className="mb-2 block text-sm font-medium">
+              Valeur disponible
+            </label>
 
-          <input
-            type="text"
-            value={values}
-            onChange={(event) => setValues(event.target.value)}
-            placeholder="Ex: Gris foncé, Bleu, Rouge"
-            className="h-12 w-full rounded-2xl border px-4 outline-none transition focus:border-black"
-          />
+            <input
+              type="text"
+              value={label}
+              onChange={(event) => setLabel(event.target.value)}
+              placeholder="Ex: 120 × 185 × 200 cm"
+              className="h-12 w-full rounded-2xl border px-4 outline-none transition focus:border-black"
+            />
+          </div>
 
-          <p className="mt-2 text-xs text-gray-500">
-            Sépare chaque valeur par une virgule.
-          </p>
+          <div>
+            <label className="mb-2 block text-sm font-medium">Prix</label>
+
+            <input
+              type="text"
+              value={price}
+              onChange={(event) => setPrice(event.target.value)}
+              placeholder="Ex: 6190"
+              className="h-12 w-full rounded-2xl border px-4 outline-none transition focus:border-black"
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={handleAddValue}
+            className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-black px-5 text-sm font-semibold text-white transition hover:bg-neutral-800"
+          >
+            <Plus className="h-4 w-4" />
+            Ajouter
+          </button>
         </div>
+
+        {values.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {values.map((value) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => handleRemoveValue(value)}
+                className="rounded-full border bg-[#f7f4ee] px-4 py-2 text-sm text-gray-700 transition hover:border-red-300 hover:text-red-600"
+              >
+                {value}
+              </button>
+            ))}
+          </div>
+        )}
 
         <label className="flex items-center gap-3 text-sm text-gray-700">
           <input
@@ -131,7 +196,6 @@ export default function ProductOptionEditor({
             onChange={(event) => setRequired(event.target.checked)}
             className="h-4 w-4 rounded border-gray-300"
           />
-
           Option obligatoire
         </label>
 
@@ -141,7 +205,7 @@ export default function ProductOptionEditor({
           className="inline-flex w-fit items-center gap-2 rounded-full bg-black px-6 py-3 text-sm font-semibold text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-60"
         >
           <Plus className="h-4 w-4" />
-          {saving ? "Ajout en cours..." : "Ajouter l’option"}
+          {saving ? "Ajout en cours..." : "Ajouter l’option’"}
         </button>
       </form>
 
