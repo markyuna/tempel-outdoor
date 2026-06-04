@@ -9,22 +9,22 @@ import { motion } from "framer-motion";
 const univers = [
   {
     title: "Spa & Spa de nage",
-    href: "/fr/bien-etre",
+    href: "/fr/bien-etre/spa",
     image: "/images/univers/spa-spa-de-nage.png",
   },
   {
     title: "Sauna",
-    href: "/fr/bien-etre",
+    href: "/fr/bien-etre/sauna",
     image: "/images/univers/sauna.png",
   },
   {
     title: "Baby-foot",
-    href: "/fr/loisirs",
+    href: "/fr/loisirs/baby-foot",
     image: "/images/univers/baby-foot.png",
   },
   {
     title: "Billard",
-    href: "/fr/loisirs",
+    href: "/fr/loisirs/billard",
     image: "/images/univers/billard.png",
   },
 ];
