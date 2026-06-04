@@ -1,5 +1,3 @@
-// src/components/admin/ProductForm.tsx
-
 "use client";
 
 import { ImagePlus } from "lucide-react";
@@ -7,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { createClient } from "@/lib/supabase/client";
+
+const BUCKET_NAME = "product-media";
 
 const categoriesByUniverse = {
   loisirs: [
@@ -39,39 +39,43 @@ export default function ProductForm() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [selectedUniverse, setSelectedUniverse] = useState<Universe | "">("");
 
-  async function uploadProductImages(productId: string, files: File[]) {
-    for (const file of files) {
+  async function uploadProductMedia(productId: string, files: File[]) {
+    for (let index = 0; index < files.length; index += 1) {
+      const file = files[index];
+      const isVideo = file.type.startsWith("video/");
+      const mediaType = isVideo ? "video" : "image";
+
       const fileExt = file.name.split(".").pop()?.toLowerCase() || "jpg";
       const fileName = `${crypto.randomUUID()}.${fileExt}`;
       const filePath = `${productId}/${fileName}`;
 
       const { data: uploadData, error: uploadError } = await supabase.storage
-        .from("product-media")
+        .from(BUCKET_NAME)
         .upload(filePath, file, {
           cacheControl: "3600",
           upsert: false,
+          contentType: file.type,
         });
 
       if (uploadError) {
-        throw new Error(`Erreur upload image: ${uploadError.message}`);
+        throw new Error(`Erreur upload média: ${uploadError.message}`);
       }
 
       const {
         data: { publicUrl },
-      } = supabase.storage.from("product-media").getPublicUrl(uploadData.path);
+      } = supabase.storage.from(BUCKET_NAME).getPublicUrl(uploadData.path);
 
-      const { error: dbError } = await supabase.from("product_images").insert({
+      const { error: dbError } = await supabase.from("product_media").insert({
         product_id: productId,
         url: publicUrl,
-        image_url: publicUrl,
-        storage_path: uploadData.path,
-        alt: "",
-        is_featured: false,
-        position: 0,
+        type: mediaType,
+        alt: file.name,
+        is_featured: index === 0,
+        position: index,
       });
 
       if (dbError) {
-        throw new Error(`Erreur sauvegarde image: ${dbError.message}`);
+        throw new Error(`Erreur sauvegarde média: ${dbError.message}`);
       }
     }
   }
@@ -82,13 +86,13 @@ export default function ProductForm() {
 
     const formData = new FormData(event.currentTarget);
 
-    const name = String(formData.get("name") || "");
+    const name = String(formData.get("name") || "").trim();
     const universe = String(formData.get("universe") || "");
     const category = String(formData.get("category") || "");
 
-    if (!universe || !category) {
+    if (!name || !universe || !category) {
       setLoading(false);
-      alert("Veuillez choisir un univers et une catégorie.");
+      alert("Veuillez remplir le nom, l’univers et la catégorie.");
       return;
     }
 
@@ -119,13 +123,13 @@ export default function ProductForm() {
 
     try {
       if (selectedFiles.length > 0) {
-        await uploadProductImages(data.id, selectedFiles);
+        await uploadProductMedia(data.id, selectedFiles);
       }
 
       router.push(`/admin/products/${data.id}/edit`);
       router.refresh();
     } catch (error) {
-      alert(error instanceof Error ? error.message : "Erreur upload image.");
+      alert(error instanceof Error ? error.message : "Erreur upload média.");
     } finally {
       setLoading(false);
     }
@@ -217,13 +221,13 @@ export default function ProductForm() {
 
           <span className="font-medium">
             {selectedFiles.length > 0
-              ? `${selectedFiles.length} image(s) sélectionnée(s)`
-              : "Ajouter des images"}
+              ? `${selectedFiles.length} média(s) sélectionné(s)`
+              : "Ajouter images ou vidéos"}
           </span>
 
           <input
             type="file"
-            accept="image/*"
+            accept="image/*,video/mp4,video/webm"
             multiple
             onChange={(event) =>
               setSelectedFiles(Array.from(event.target.files || []))

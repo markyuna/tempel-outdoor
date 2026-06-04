@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import ProductVariantsEditor from "@/components/admin/ProductVariantsEditor";
 
 import ProductMediaUploader from "@/components/admin/ProductMediaUploader";
 import ProductOptionsEditor from "@/components/admin/ProductOptionsEditor";
@@ -76,26 +77,32 @@ export default async function AdminProductEditPage({ params }: PageProps) {
     redirect(`/admin/products/${id}/edit`);
   }
 
-  const [{ data: media }, { data: options }, { data: sections }] =
-    await Promise.all([
-      supabase
-        .from("product_media")
-        .select("*")
-        .eq("product_id", id)
-        .order("position", { ascending: true }),
+  const [{ data: media }, { data: options }, { data: sections }, { data: variants }] =
+  await Promise.all([
+    supabase
+      .from("product_media")
+      .select("*")
+      .eq("product_id", id)
+      .order("position", { ascending: true }),
 
-      supabase
-        .from("product_options")
-        .select("*")
-        .eq("product_id", id)
-        .order("position", { ascending: true }),
+    supabase
+      .from("product_options")
+      .select("*")
+      .eq("product_id", id)
+      .order("position", { ascending: true }),
 
-      supabase
-        .from("product_spec_sections")
-        .select("*")
-        .eq("product_id", id)
-        .order("position", { ascending: true }),
-    ]);
+    supabase
+      .from("product_spec_sections")
+      .select("*")
+      .eq("product_id", id)
+      .order("position", { ascending: true }),
+
+    supabase
+      .from("product_variants")
+      .select("*")
+      .eq("product_id", id)
+      .order("position", { ascending: true }),
+  ]);
 
   const sectionIds = sections?.map((section) => section.id) ?? [];
 
@@ -284,6 +291,14 @@ export default async function AdminProductEditPage({ params }: PageProps) {
 
         <div className="mt-8">
           <ProductMediaUploader productId={id} />
+        </div>
+
+        <div className="mt-8">
+          <ProductVariantsEditor
+            productId={id}
+            media={(media ?? []) as ProductMedia[]}
+            variants={(variants ?? [])}
+          />
         </div>
 
         <div className="mt-8">

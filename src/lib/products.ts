@@ -1,11 +1,20 @@
-// src/lib/products.ts
-
 import { createClient } from "@/lib/supabase/server";
 import type {
   Product,
   CreateProductInput,
   UpdateProductInput,
 } from "@/types/product";
+
+const PRODUCT_MEDIA_BUCKET = "product-media";
+
+function getStoragePathFromPublicUrl(url: string) {
+  const marker = `/storage/v1/object/public/${PRODUCT_MEDIA_BUCKET}/`;
+  const index = url.indexOf(marker);
+
+  if (index === -1) return null;
+
+  return decodeURIComponent(url.slice(index + marker.length));
+}
 
 export async function getProducts(): Promise<Product[]> {
   const supabase = await createClient();
@@ -23,9 +32,7 @@ export async function getProducts(): Promise<Product[]> {
   return data as Product[];
 }
 
-export async function getProductById(
-  id: string
-): Promise<Product | null> {
+export async function getProductById(id: string): Promise<Product | null> {
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -42,9 +49,7 @@ export async function getProductById(
   return data as Product;
 }
 
-export async function getProductBySlug(
-  slug: string
-): Promise<Product | null> {
+export async function getProductBySlug(slug: string): Promise<Product | null> {
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -61,9 +66,7 @@ export async function getProductBySlug(
   return data as Product;
 }
 
-export async function createProduct(
-  product: CreateProductInput
-) {
+export async function createProduct(product: CreateProductInput) {
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -79,9 +82,7 @@ export async function createProduct(
   return data;
 }
 
-export async function updateProduct(
-  product: UpdateProductInput
-) {
+export async function updateProduct(product: UpdateProductInput) {
   const supabase = await createClient();
 
   const { id, ...values } = product;
@@ -103,10 +104,40 @@ export async function updateProduct(
 export async function deleteProduct(id: string) {
   const supabase = await createClient();
 
-  const { error } = await supabase
-    .from("products")
+  const { data: media, error: mediaError } = await supabase
+    .from("product_media")
+    .select("id, url")
+    .eq("product_id", id);
+
+  if (mediaError) {
+    throw new Error(mediaError.message);
+  }
+
+  const filesToDelete =
+    media
+      ?.map((item) => getStoragePathFromPublicUrl(item.url))
+      .filter((path): path is string => Boolean(path)) || [];
+
+  if (filesToDelete.length > 0) {
+    const { error: storageError } = await supabase.storage
+      .from(PRODUCT_MEDIA_BUCKET)
+      .remove(filesToDelete);
+
+    if (storageError) {
+      throw new Error(storageError.message);
+    }
+  }
+
+  const { error: productMediaError } = await supabase
+    .from("product_media")
     .delete()
-    .eq("id", id);
+    .eq("product_id", id);
+
+  if (productMediaError) {
+    throw new Error(productMediaError.message);
+  }
+
+  const { error } = await supabase.from("products").delete().eq("id", id);
 
   if (error) {
     throw new Error(error.message);

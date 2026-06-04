@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import DeleteProductButton from "@/components/admin/DeleteProductButton";
 import { getProducts } from "@/lib/products";
 
 export default async function AdminProductsPage() {
@@ -12,7 +13,7 @@ export default async function AdminProductsPage() {
 
         <Link
           href="/admin/products/create"
-          className="rounded-full bg-black px-6 py-3 text-white"
+          className="rounded-full bg-black px-6 py-3 text-white transition hover:opacity-90"
         >
           New product
         </Link>
@@ -33,7 +34,10 @@ export default async function AdminProductsPage() {
 
           <tbody>
             {products.map((product) => (
-              <tr key={product.id} className="border-b">
+              <tr
+                key={product.id}
+                className="border-b transition hover:bg-gray-50"
+              >
                 <td className="p-4 font-medium">{product.name}</td>
                 <td className="p-4">{product.universe || "-"}</td>
                 <td className="p-4">{product.category || "-"}</td>
@@ -41,10 +45,10 @@ export default async function AdminProductsPage() {
                 <td className="p-4">{product.stock}</td>
 
                 <td className="p-4">
-                  <div className="flex gap-2">
+                  <div className="flex items-center gap-2">
                     <Link
                       href={`/admin/products/${product.id}/edit`}
-                      className="rounded-full bg-black px-4 py-2 text-xs font-semibold text-white"
+                      className="rounded-full bg-black px-4 py-2 text-xs font-semibold text-white transition hover:opacity-90"
                     >
                       Edit
                     </Link>
@@ -52,10 +56,15 @@ export default async function AdminProductsPage() {
                     <Link
                       href={`/fr/produits/${product.slug}`}
                       target="_blank"
-                      className="rounded-full border px-4 py-2 text-xs font-semibold"
+                      className="rounded-full border px-4 py-2 text-xs font-semibold transition hover:bg-gray-100"
                     >
                       View
                     </Link>
+
+                    <DeleteProductButton
+                      productId={product.id}
+                      productName={product.name}
+                    />
                   </div>
                 </td>
               </tr>

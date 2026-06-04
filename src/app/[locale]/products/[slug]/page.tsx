@@ -1,5 +1,3 @@
-// src/app/[locale]/products/[slug]/page.tsx
-
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -13,7 +11,7 @@ import {
   Truck,
 } from "lucide-react";
 
-import ProductMediaGallery from "@/components/products/ProductMediaGallery";
+import ProductPurchaseSection from "@/components/products/ProductPurchaseSection";
 import ProductSpecs from "@/components/products/ProductSpecs";
 import { createClient } from "@/lib/supabase/server";
 
@@ -30,6 +28,14 @@ type ProductMedia = {
   alt: string | null;
   type: "image" | "video";
   is_featured: boolean | null;
+  position: number | null;
+};
+
+type ProductVariant = {
+  id: string;
+  name: string;
+  value: string;
+  image_media_id: string | null;
   position: number | null;
 };
 
@@ -60,6 +66,7 @@ type Product = {
   description: string | null;
   delivery_time: string | null;
   product_media: ProductMedia[] | null;
+  product_variants: ProductVariant[] | null;
   product_spec_sections: ProductSpecSection[] | null;
 };
 
@@ -87,6 +94,13 @@ async function getProduct(slug: string): Promise<Product | null> {
         alt,
         type,
         is_featured,
+        position
+      ),
+      product_variants (
+        id,
+        name,
+        value,
+        image_media_id,
         position
       ),
       product_spec_sections (
@@ -147,6 +161,8 @@ export default async function ProductPage({ params }: Props) {
   if (!product) notFound();
 
   const media = product.product_media ?? [];
+  const variants = product.product_variants ?? [];
+
   const hasDiscount =
     product.compare_at_price && product.compare_at_price > product.price;
 
@@ -163,7 +179,11 @@ export default async function ProductPage({ params }: Props) {
           </Link>
 
           <div className="mt-10 grid gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:items-start">
-            <ProductMediaGallery media={media} productName={product.name} />
+            <ProductPurchaseSection
+              media={media}
+              variants={variants}
+              productName={product.name}
+            />
 
             <aside className="rounded-[2.5rem] border border-black/10 bg-white p-7 shadow-sm lg:sticky lg:top-28">
               <div className="flex flex-wrap items-center gap-3">
