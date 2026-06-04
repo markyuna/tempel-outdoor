@@ -10,10 +10,11 @@ type Props = {
   productId: string;
 };
 
-export default function ProductMediaUploader ({ productId }: Props) {
+const BUCKET_NAME = "product-media";
+
+export default function ProductMediaUploader({ productId }: Props) {
   const router = useRouter();
   const supabase = createClient();
-
   const [uploading, setUploading] = useState(false);
 
   async function handleUpload(event: React.ChangeEvent<HTMLInputElement>) {
@@ -23,49 +24,52 @@ export default function ProductMediaUploader ({ productId }: Props) {
 
     setUploading(true);
 
-    for (const file of files) {
-      const isVideo = file.type.startsWith("video/");
-      const mediaType = isVideo ? "video" : "image";
+    try {
+      for (const file of files) {
+        const isVideo = file.type.startsWith("video/");
+        const mediaType = isVideo ? "video" : "image";
 
-      const fileExt = file.name.split(".").pop()?.toLowerCase() || "jpg";
-      const fileName = `${crypto.randomUUID()}.${fileExt}`;
-      const filePath = `${productId}/${fileName}`;
+        const fileExt = file.name.split(".").pop()?.toLowerCase() || "jpg";
+        const fileName = `${crypto.randomUUID()}.${fileExt}`;
+        const filePath = `${productId}/${fileName}`;
 
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from("product-media")
-        .upload(filePath, file, {
-          cacheControl: "3600",
-          upsert: false,
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from(BUCKET_NAME)
+          .upload(filePath, file, {
+            cacheControl: "3600",
+            upsert: false,
+            contentType: file.type,
+          });
+
+        if (uploadError) {
+          throw new Error(`Erreur upload Storage: ${uploadError.message}`);
+        }
+
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from(BUCKET_NAME).getPublicUrl(uploadData.path);
+
+        const { error: dbError } = await supabase.from("product_media").insert({
+          product_id: productId,
+          url: publicUrl,
+          type: mediaType,
+          alt: file.name,
+          is_featured: false,
+          position: 0,
         });
 
-      if (uploadError) {
-        setUploading(false);
-        alert(`Erreur upload Storage: ${uploadError.message}`);
-        return;
+        if (dbError) {
+          throw new Error(`Erreur sauvegarde média DB: ${dbError.message}`);
+        }
       }
 
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("product-media").getPublicUrl(uploadData.path);
-
-      const { error: dbError } = await supabase.from("product_media").insert({
-        product_id: productId,
-        url: publicUrl,
-        type: mediaType,
-        alt: file.name,
-        position: 0,
-      });
-
-      if (dbError) {
-        setUploading(false);
-        alert(`Erreur sauvegarde média DB: ${dbError.message}`);
-        return;
-      }
+      event.target.value = "";
+      router.refresh();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Erreur upload média.");
+    } finally {
+      setUploading(false);
     }
-
-    setUploading(false);
-    event.target.value = "";
-    router.refresh();
   }
 
   return (

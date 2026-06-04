@@ -46,7 +46,7 @@ export default function ProductForm() {
       const filePath = `${productId}/${fileName}`;
 
       const { data: uploadData, error: uploadError } = await supabase.storage
-        .from("product-images")
+        .from("product-media")
         .upload(filePath, file, {
           cacheControl: "3600",
           upsert: false,
@@ -58,7 +58,7 @@ export default function ProductForm() {
 
       const {
         data: { publicUrl },
-      } = supabase.storage.from("product-images").getPublicUrl(uploadData.path);
+      } = supabase.storage.from("product-media").getPublicUrl(uploadData.path);
 
       const { error: dbError } = await supabase.from("product_images").insert({
         product_id: productId,

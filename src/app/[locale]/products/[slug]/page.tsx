@@ -1,8 +1,9 @@
+// src/app/[locale]/products/[slug]/page.tsx
+
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ShoppingBag } from "lucide-react";
+import { ArrowLeft, Play, ShoppingBag } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
 
@@ -13,57 +14,70 @@ type Props = {
   }>;
 };
 
-type ProductImage = {
+type ProductMedia = {
   id: string;
-  url: string | null;
-  image_url: string | null;
+  url: string;
   alt: string | null;
+  type: "image" | "video";
   is_featured: boolean | null;
   position: number | null;
 };
 
-async function getProduct(slug: string) {
+type Product = {
+  id: string;
+  name: string;
+  slug: string;
+  price: number;
+  stock: number;
+  category: string;
+  universe: string;
+  short_description: string | null;
+  description: string | null;
+  product_media: ProductMedia[] | null;
+};
+
+async function getProduct(slug: string): Promise<Product | null> {
   const supabase = await createClient();
 
   const { data, error } = await supabase
     .from("products")
     .select(
       `
-      *,
-      product_images (
+      id,
+      name,
+      slug,
+      price,
+      stock,
+      category,
+      universe,
+      short_description,
+      description,
+      product_media (
         id,
         url,
-        image_url,
         alt,
+        type,
         is_featured,
         position
       )
     `
     )
     .eq("slug", slug)
+    .eq("status", "active")
     .single();
 
-  if (error || !data) {
-    return null;
-  }
+  if (error || !data) return null;
 
-  return data;
+  return data as Product;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const product = await getProduct(slug);
 
-  if (!product) {
-    return {
-      title: "Produit introuvable",
-    };
-  }
-
   return {
-    title: `${product.name} | Tempel Outdoor`,
-    description:
-      product.short_description || product.description || product.name,
+    title: product ? `${product.name} | Tempel Outdoor` : "Produit introuvable",
+    description: product?.short_description || product?.description || "",
   };
 }
 
@@ -78,19 +92,16 @@ export default async function ProductPage({ params }: Props) {
   const { locale, slug } = await params;
   const product = await getProduct(slug);
 
-  if (!product) {
-    notFound();
-  }
+  if (!product) notFound();
 
-  const images = ((product.product_images || []) as ProductImage[]).sort(
+  const media = [...(product.product_media ?? [])].sort(
     (a, b) => (a.position ?? 0) - (b.position ?? 0)
   );
 
-  const featuredImage =
-    images.find((image) => image.is_featured)?.image_url ||
-    images.find((image) => image.is_featured)?.url ||
-    images[0]?.image_url ||
-    images[0]?.url ||
+  const featuredMedia =
+    media.find((item) => item.is_featured) ||
+    media.find((item) => item.type === "image") ||
+    media[0] ||
     null;
 
   return (
@@ -98,58 +109,67 @@ export default async function ProductPage({ params }: Props) {
       <section className="px-6 py-16">
         <div className="mx-auto max-w-7xl">
           <Link
-            href={`/${locale}`}
+            href={`/${locale}/${product.universe}/${product.category}`}
             className="inline-flex items-center gap-2 text-sm font-medium"
           >
             <ArrowLeft className="h-4 w-4" />
-            Retour
+            Retour aux produits
           </Link>
 
           <div className="mt-10 grid gap-12 lg:grid-cols-2">
             <div>
               <div className="overflow-hidden rounded-[2rem] border border-[#e5ddd0] bg-white">
-                <div className="relative aspect-square bg-[#e8e0d4]">
-                  {featuredImage ? (
-                    <Image
-                      src={featuredImage}
-                      alt={images[0]?.alt || product.name}
-                      fill
-                      sizes="(min-width: 1024px) 50vw, 100vw"
-                      className="object-cover"
-                      priority
-                    />
+                <div className="aspect-square bg-[#e8e0d4]">
+                  {featuredMedia ? (
+                    featuredMedia.type === "video" ? (
+                      <video
+                        src={featuredMedia.url}
+                        controls
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <img
+                        src={featuredMedia.url}
+                        alt={featuredMedia.alt || product.name}
+                        className="h-full w-full object-cover"
+                      />
+                    )
                   ) : (
                     <div className="flex h-full items-center justify-center">
                       <span className="uppercase tracking-[0.3em] text-[#8a8178]">
-                        Image produit
+                        Aucun média
                       </span>
                     </div>
                   )}
                 </div>
               </div>
 
-              {images.length > 1 ? (
+              {media.length > 1 ? (
                 <div className="mt-4 grid grid-cols-4 gap-3">
-                  {images.slice(0, 4).map((image) => {
-                    const imageUrl = image.image_url || image.url;
-
-                    if (!imageUrl) return null;
-
-                    return (
-                      <div
-                        key={image.id}
-                        className="relative aspect-square overflow-hidden rounded-2xl border border-[#e5ddd0] bg-white"
-                      >
-                        <Image
-                          src={imageUrl}
-                          alt={image.alt || product.name}
-                          fill
-                          sizes="120px"
-                          className="object-cover"
+                  {media.slice(0, 8).map((item) => (
+                    <div
+                      key={item.id}
+                      className="relative aspect-square overflow-hidden rounded-2xl border border-[#e5ddd0] bg-white"
+                    >
+                      {item.type === "video" ? (
+                        <>
+                          <video
+                            src={item.url}
+                            className="h-full w-full object-cover"
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                            <Play className="h-6 w-6 text-white" />
+                          </div>
+                        </>
+                      ) : (
+                        <img
+                          src={item.url}
+                          alt={item.alt || product.name}
+                          className="h-full w-full object-cover"
                         />
-                      </div>
-                    );
-                  })}
+                      )}
+                    </div>
+                  ))}
                 </div>
               ) : null}
             </div>
@@ -170,7 +190,7 @@ export default async function ProductPage({ params }: Props) {
               ) : null}
 
               <div className="mt-8 text-4xl font-bold">
-                {formatPrice(product.price)}
+                {formatPrice(Number(product.price))}
               </div>
 
               <div className="mt-4">
@@ -189,7 +209,7 @@ export default async function ProductPage({ params }: Props) {
             <h2 className="text-2xl font-semibold">Description</h2>
 
             <div className="mt-6 whitespace-pre-line leading-8 text-[#5f5a54]">
-              {product.description}
+              {product.description || "Aucune description disponible."}
             </div>
           </div>
         </div>
