@@ -9,6 +9,7 @@ type ProductMedia = {
   url: string;
   alt: string | null;
   type: "image" | "video";
+  is_featured: boolean | null;
   position: number | null;
 };
 
@@ -50,6 +51,19 @@ function formatPrice(value: number) {
   }).format(value);
 }
 
+function getCoverImage(media: ProductMedia[] | null) {
+  const images = [...(media ?? [])]
+    .filter((item) => item.type === "image")
+    .sort((a, b) => {
+      if (a.is_featured && !b.is_featured) return -1;
+      if (!a.is_featured && b.is_featured) return 1;
+
+      return (a.position ?? 999) - (b.position ?? 999);
+    });
+
+  return images[0] ?? null;
+}
+
 export default async function CategoryProductsPage({
   universe,
   category,
@@ -78,6 +92,7 @@ export default async function CategoryProductsPage({
         url,
         alt,
         type,
+        is_featured,
         position
       )
     `
@@ -120,7 +135,11 @@ export default async function CategoryProductsPage({
         ) : null}
 
         <div className="relative mx-auto flex min-h-screen max-w-7xl flex-col justify-end px-6 pb-20 pt-24">
-          <div className={isLightCategory ? "max-w-4xl text-black" : "max-w-4xl text-white"}>
+          <div
+            className={
+              isLightCategory ? "max-w-4xl text-black" : "max-w-4xl text-white"
+            }
+          >
             <p
               className={
                 isLightCategory
@@ -149,11 +168,7 @@ export default async function CategoryProductsPage({
           {products.length > 0 ? (
             <div className="mt-10 grid gap-7 md:grid-cols-2 lg:grid-cols-3">
               {products.map((product) => {
-                const media = [...(product.product_media ?? [])].sort(
-                  (a, b) => (a.position ?? 0) - (b.position ?? 0)
-                );
-
-                const image = media.find((item) => item.type === "image");
+                const image = getCoverImage(product.product_media);
 
                 return (
                   <Link
@@ -165,7 +180,7 @@ export default async function CategoryProductsPage({
                         : "group overflow-hidden rounded-[2rem] border border-white/15 bg-white/95 shadow-2xl backdrop-blur transition duration-300 hover:-translate-y-1 hover:bg-white"
                     }
                   >
-                    <div className="relative aspect-[4/3] overflow-hidden bg-neutral-100">
+                    <div className="relative aspect-[4/3] overflow-hidden bg-white">
                       {image?.url ? (
                         <img
                           src={image.url}

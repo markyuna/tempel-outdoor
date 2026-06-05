@@ -167,15 +167,28 @@ function getCategoryLabel(category: string) {
   return labels[category] || category;
 }
 
+function sortMedia(media: ProductMedia[]) {
+  return [...media].sort((a, b) => {
+    if (a.is_featured && !b.is_featured) return -1;
+    if (!a.is_featured && b.is_featured) return 1;
+
+    return (a.position ?? 999) - (b.position ?? 999);
+  });
+}
+
 export default async function ProductPage({ params }: Props) {
   const { locale, slug } = await params;
   const product = await getProduct(slug);
 
   if (!product) notFound();
 
-  const media = product.product_media ?? [];
-  const variants = product.product_variants ?? [];
-  const options = product.product_options ?? [];
+  const media = sortMedia(product.product_media ?? []);
+  const variants = [...(product.product_variants ?? [])].sort(
+    (a, b) => (a.position ?? 999) - (b.position ?? 999)
+  );
+  const options = [...(product.product_options ?? [])].sort(
+    (a, b) => a.position - b.position
+  );
 
   const storyVideoUrl =
     categoryVideos[product.category] ?? "/videos/tempel-outdoor.mp4";
