@@ -1,13 +1,13 @@
 // src/app/admin/products/[id]/edit/page.tsx
 
-import Image from "next/image";
+import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import ProductVariantsEditor from "@/components/admin/ProductVariantsEditor";
 
 import ProductMediaUploader from "@/components/admin/ProductMediaUploader";
 import ProductOptionsEditor from "@/components/admin/ProductOptionsEditor";
 import ProductSpecsEditor from "@/components/admin/ProductSpecsEditor";
+import ProductVariantsEditor from "@/components/admin/ProductVariantsEditor";
 import { createClient } from "@/lib/supabase/server";
 import type {
   ProductMedia,
@@ -21,6 +21,8 @@ type PageProps = {
     id: string;
   }>;
 };
+
+const BUCKET_NAME = "product-media";
 
 export default async function AdminProductEditPage({ params }: PageProps) {
   const { id } = await params;
@@ -41,20 +43,22 @@ export default async function AdminProductEditPage({ params }: PageProps) {
 
     const supabase = await createClient();
 
-    const name = String(formData.get("name") || "");
-    const slug = String(formData.get("slug") || "");
-    const universe = String(formData.get("universe") || "");
-    const category = String(formData.get("category") || "");
+    const name = String(formData.get("name") || "").trim();
+    const slug = String(formData.get("slug") || "").trim();
+    const universe = String(formData.get("universe") || "").trim();
+    const category = String(formData.get("category") || "").trim();
     const price = Number(formData.get("price") || 0);
     const compareAtPriceValue = String(formData.get("compare_at_price") || "");
     const stock = Number(formData.get("stock") || 0);
     const status = String(formData.get("status") || "draft");
     const featured = formData.get("featured") === "true";
-    const deliveryTime = String(formData.get("delivery_time") || "");
-    const shortDescription = String(formData.get("short_description") || "");
-    const description = String(formData.get("description") || "");
+    const deliveryTime = String(formData.get("delivery_time") || "").trim();
+    const shortDescription = String(
+      formData.get("short_description") || ""
+    ).trim();
+    const description = String(formData.get("description") || "").trim();
 
-    await supabase
+    const { error } = await supabase
       .from("products")
       .update({
         name,
@@ -74,15 +78,176 @@ export default async function AdminProductEditPage({ params }: PageProps) {
       })
       .eq("id", id);
 
+    if (error) {
+      throw new Error(`Erreur modification produit: ${error.message}`);
+    }
+
+    revalidatePath(`/admin/products/${id}/edit`);
     redirect(`/admin/products/${id}/edit`);
   }
 
-  const [{ data: media }, { data: options }, { data: sections }, { data: variants }] =
-  await Promise.all([
+  async function setProductMediaCover(formData: FormData) {
+    "use server";
+
+    const mediaId = String(formData.get("mediaId") || "");
+
+    if (!mediaId) return;
+
+    const supabase = await createClient();
+
+    const { error: resetError } = await supabase
+      .from("product_media")
+      .update({ is_featured: false })
+      .eq("product_id", id);
+
+    if (resetError) {
+      throw new Error(`Erreur reset cover: ${resetError.message}`);
+    }
+
+    const { error: coverError } = await supabase
+      .from("product_media")
+      .update({
+        is_featured: true,
+        position: 0,
+      })
+      .eq("id", mediaId);
+
+    if (coverError) {
+      throw new Error(`Erreur cover média: ${coverError.message}`);
+    }
+
+    revalidatePath(`/admin/products/${id}/edit`);
+  }
+
+  async function moveProductMedia(formData: FormData) {
+    "use server";
+
+    const mediaId = String(formData.get("mediaId") || "");
+    const direction = String(formData.get("direction") || "");
+
+    if (!mediaId || (direction !== "up" && direction !== "down")) return;
+
+    const supabase = await createClient();
+
+    const { data: items, error } = await supabase
+      .from("product_media")
+      .select("id, position, is_featured")
+      .eq("product_id", id)
+      .order("is_featured", { ascending: false })
+      .order("position", { ascending: true });
+
+    if (error) {
+      throw new Error(`Erreur récupération médias: ${error.message}`);
+    }
+
+    const mediaItems = items ?? [];
+    const currentIndex = mediaItems.findIndex((item) => item.id === mediaId);
+    const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+
+    if (
+      currentIndex === -1 ||
+      targetIndex < 0 ||
+      targetIndex >= mediaItems.length
+    ) {
+      return;
+    }
+
+    const reordered = [...mediaItems];
+    const [currentItem] = reordered.splice(currentIndex, 1);
+
+    reordered.splice(targetIndex, 0, currentItem);
+
+    await Promise.all(
+      reordered.map(async (item, index) => {
+        const { error: updateError } = await supabase
+          .from("product_media")
+          .update({
+            position: index,
+            is_featured: index === 0,
+          })
+          .eq("id", item.id);
+
+        if (updateError) {
+          throw new Error(`Erreur ordre média: ${updateError.message}`);
+        }
+      })
+    );
+
+    revalidatePath(`/admin/products/${id}/edit`);
+  }
+
+  async function deleteProductMedia(formData: FormData) {
+    "use server";
+
+    const mediaId = String(formData.get("mediaId") || "");
+    const mediaUrl = String(formData.get("mediaUrl") || "");
+
+    if (!mediaId) return;
+
+    const supabase = await createClient();
+
+    const marker = `/storage/v1/object/public/${BUCKET_NAME}/`;
+    const index = mediaUrl.indexOf(marker);
+
+    if (index !== -1) {
+      const storagePath = decodeURIComponent(
+        mediaUrl.slice(index + marker.length)
+      );
+
+      await supabase.storage.from(BUCKET_NAME).remove([storagePath]);
+    }
+
+    const { error: deleteError } = await supabase
+      .from("product_media")
+      .delete()
+      .eq("id", mediaId);
+
+    if (deleteError) {
+      throw new Error(`Erreur suppression média: ${deleteError.message}`);
+    }
+
+    const { data: remainingMedia, error: remainingError } = await supabase
+      .from("product_media")
+      .select("id")
+      .eq("product_id", id)
+      .order("position", { ascending: true });
+
+    if (remainingError) {
+      throw new Error(`Erreur reload médias: ${remainingError.message}`);
+    }
+
+    if (remainingMedia.length > 0) {
+      await Promise.all(
+        remainingMedia.map(async (item, index) => {
+          const { error: updateError } = await supabase
+            .from("product_media")
+            .update({
+              position: index,
+              is_featured: index === 0,
+            })
+            .eq("id", item.id);
+
+          if (updateError) {
+            throw new Error(`Erreur réorganisation médias: ${updateError.message}`);
+          }
+        })
+      );
+    }
+
+    revalidatePath(`/admin/products/${id}/edit`);
+  }
+
+  const [
+    { data: media },
+    { data: options },
+    { data: sections },
+    { data: variants },
+  ] = await Promise.all([
     supabase
       .from("product_media")
       .select("*")
       .eq("product_id", id)
+      .order("is_featured", { ascending: false })
       .order("position", { ascending: true }),
 
     supabase
@@ -104,6 +269,7 @@ export default async function AdminProductEditPage({ params }: PageProps) {
       .order("position", { ascending: true }),
   ]);
 
+  const typedMedia = (media ?? []) as ProductMedia[];
   const sectionIds = sections?.map((section) => section.id) ?? [];
 
   const { data: specItems } =
@@ -162,7 +328,12 @@ export default async function AdminProductEditPage({ params }: PageProps) {
             <h2 className="text-xl font-semibold">Informations générales</h2>
 
             <div className="mt-8 grid gap-5">
-              <Input label="Nom du produit" name="name" defaultValue={product.name} />
+              <Input
+                label="Nom du produit"
+                name="name"
+                defaultValue={product.name}
+              />
+
               <Input label="Slug" name="slug" defaultValue={product.slug} />
 
               <div className="grid gap-5 md:grid-cols-2">
@@ -171,6 +342,7 @@ export default async function AdminProductEditPage({ params }: PageProps) {
                   name="universe"
                   defaultValue={product.universe ?? ""}
                 />
+
                 <Input
                   label="Catégorie"
                   name="category"
@@ -185,12 +357,14 @@ export default async function AdminProductEditPage({ params }: PageProps) {
                   type="number"
                   defaultValue={product.price ?? ""}
                 />
+
                 <Input
                   label="Prix barré"
                   name="compare_at_price"
                   type="number"
                   defaultValue={product.compare_at_price ?? ""}
                 />
+
                 <Input
                   label="Stock"
                   name="stock"
@@ -249,55 +423,23 @@ export default async function AdminProductEditPage({ params }: PageProps) {
             </div>
           </form>
 
-          <div className="rounded-3xl border bg-white p-8 shadow-sm">
-            <h2 className="text-xl font-semibold">Aperçu médias</h2>
-
-            <p className="mt-2 text-sm text-[#5f5a54]">
-              Images et vidéos actuellement associées à ce produit.
-            </p>
-
-            {media && media.length > 0 ? (
-              <div className="mt-6 grid grid-cols-2 gap-4">
-                {(media as ProductMedia[]).map((item) => (
-                  <div
-                    key={item.id}
-                    className="relative h-40 overflow-hidden rounded-2xl border bg-[#f7f4ee]"
-                  >
-                    {item.type === "video" ? (
-                      <video
-                        src={item.url}
-                        controls
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <Image
-                        src={item.url}
-                        alt={item.alt || product.name}
-                        fill
-                        sizes="240px"
-                        className="object-cover"
-                      />
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="mt-6 flex h-40 items-center justify-center rounded-2xl border border-dashed bg-[#f7f4ee] text-sm text-[#8a8178]">
-                Aucun média pour le moment
-              </div>
-            )}
-          </div>
+          <aside className="rounded-3xl border bg-white p-8 shadow-sm">
+            <ProductMediaUploader
+              productId={id}
+              media={typedMedia}
+              compact
+              setCoverAction={setProductMediaCover}
+              moveMediaAction={moveProductMedia}
+              deleteMediaAction={deleteProductMedia}
+            />
+          </aside>
         </section>
-
-        <div className="mt-8">
-          <ProductMediaUploader productId={id} />
-        </div>
 
         <div className="mt-8">
           <ProductVariantsEditor
             productId={id}
-            media={(media ?? []) as ProductMedia[]}
-            variants={(variants ?? [])}
+            media={typedMedia}
+            variants={variants ?? []}
           />
         </div>
 
@@ -332,6 +474,7 @@ function Input({
       <span className="mb-2 block text-sm font-medium text-[#5f5a54]">
         {label}
       </span>
+
       <input
         name={name}
         type={type}
@@ -356,6 +499,7 @@ function Textarea({
       <span className="mb-2 block text-sm font-medium text-[#5f5a54]">
         {label}
       </span>
+
       <textarea
         name={name}
         defaultValue={defaultValue}
@@ -385,6 +529,7 @@ function Select({
       <span className="mb-2 block text-sm font-medium text-[#5f5a54]">
         {label}
       </span>
+
       <select
         name={name}
         defaultValue={defaultValue}

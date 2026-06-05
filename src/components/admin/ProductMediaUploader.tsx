@@ -1,31 +1,68 @@
+// src/components/admin/ProductMediaUploader.tsx
+
 "use client";
 
-import { ImagePlus, Video } from "lucide-react";
+import Image from "next/image";
+import { ArrowDown, ArrowUp, ImagePlus, Star, Trash2, Video } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { createClient } from "@/lib/supabase/client";
 
+type ProductMedia = {
+  id: string;
+  product_id: string;
+  url: string;
+  type: "image" | "video";
+  alt: string | null;
+  is_featured: boolean | null;
+  position: number | null;
+};
+
 type Props = {
   productId: string;
+  media?: ProductMedia[];
+  compact?: boolean;
+  setCoverAction: (formData: FormData) => Promise<void>;
+  moveMediaAction: (formData: FormData) => Promise<void>;
+  deleteMediaAction: (formData: FormData) => Promise<void>;
 };
 
 const BUCKET_NAME = "product-media";
 
-export default function ProductMediaUploader({ productId }: Props) {
+export default function ProductMediaUploader({
+  productId,
+  media = [],
+  compact = false,
+  setCoverAction,
+  moveMediaAction,
+  deleteMediaAction,
+}: Props) {
   const router = useRouter();
   const supabase = createClient();
   const [uploading, setUploading] = useState(false);
 
+  const sortedMedia = useMemo(() => {
+    return [...media].sort((a, b) => {
+      if (a.is_featured && !b.is_featured) return -1;
+      if (!a.is_featured && b.is_featured) return 1;
+      return (a.position ?? 9999) - (b.position ?? 9999);
+    });
+  }, [media]);
+
   async function handleUpload(event: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files || []);
-
     if (files.length === 0) return;
 
     setUploading(true);
 
     try {
-      for (const file of files) {
+      const currentMaxPosition =
+        sortedMedia.length > 0
+          ? Math.max(...sortedMedia.map((item) => item.position ?? 0))
+          : -1;
+
+      for (const [index, file] of files.entries()) {
         const isVideo = file.type.startsWith("video/");
         const mediaType = isVideo ? "video" : "image";
 
@@ -41,26 +78,24 @@ export default function ProductMediaUploader({ productId }: Props) {
             contentType: file.type,
           });
 
-        if (uploadError) {
-          throw new Error(`Erreur upload Storage: ${uploadError.message}`);
-        }
+        if (uploadError) throw new Error(uploadError.message);
 
         const {
           data: { publicUrl },
         } = supabase.storage.from(BUCKET_NAME).getPublicUrl(uploadData.path);
+
+        const shouldBeCover = sortedMedia.length === 0 && index === 0;
 
         const { error: dbError } = await supabase.from("product_media").insert({
           product_id: productId,
           url: publicUrl,
           type: mediaType,
           alt: file.name,
-          is_featured: false,
-          position: 0,
+          is_featured: shouldBeCover,
+          position: currentMaxPosition + index + 1,
         });
 
-        if (dbError) {
-          throw new Error(`Erreur sauvegarde média DB: ${dbError.message}`);
-        }
+        if (dbError) throw new Error(dbError.message);
       }
 
       event.target.value = "";
@@ -73,21 +108,18 @@ export default function ProductMediaUploader({ productId }: Props) {
   }
 
   return (
-    <div className="rounded-3xl border bg-white p-8">
-      <h2 className="text-xl font-semibold">Médias du produit</h2>
+    <div className={compact ? "" : "rounded-3xl border bg-white p-8"}>
+      <h2 className="text-xl font-semibold">Aperçu médias</h2>
 
-      <p className="mt-2 text-sm text-gray-500">
-        Ajoute une ou plusieurs images ou vidéos pour afficher le produit dans
-        la boutique.
+      <p className="mt-2 text-sm text-[#5f5a54]">
+        Ajoute, organise, supprime les médias et définis l’image cover.
       </p>
 
-      <label className="mt-6 flex cursor-pointer items-center justify-center gap-3 rounded-2xl border border-dashed border-gray-300 bg-[#f7f4ee] px-6 py-10 text-center transition hover:bg-white">
-        <div className="flex items-center gap-2">
-          <ImagePlus className="h-6 w-6" />
-          <Video className="h-6 w-6" />
-        </div>
+      <label className="mt-6 flex cursor-pointer items-center justify-center gap-3 rounded-2xl border border-dashed border-gray-300 bg-[#f7f4ee] px-5 py-8 text-center transition hover:bg-white">
+        <ImagePlus className="h-5 w-5" />
+        <Video className="h-5 w-5" />
 
-        <span className="font-medium">
+        <span className="text-sm font-semibold">
           {uploading ? "Upload en cours..." : "Ajouter images ou vidéos"}
         </span>
 
@@ -100,6 +132,107 @@ export default function ProductMediaUploader({ productId }: Props) {
           className="hidden"
         />
       </label>
+
+      <div className="mt-6 grid grid-cols-2 gap-4">
+        {sortedMedia.map((item, index) => (
+          <div
+            key={item.id}
+            className="overflow-hidden rounded-2xl border bg-[#f7f4ee]"
+          >
+            <div className="relative aspect-[4/3] bg-white">
+              {item.type === "image" ? (
+                <Image
+                  src={item.url}
+                  alt={item.alt || "Média produit"}
+                  fill
+                  sizes="260px"
+                  className="object-cover"
+                />
+              ) : (
+                <video
+                  src={item.url}
+                  muted
+                  controls
+                  className="h-full w-full object-cover"
+                />
+              )}
+
+              {item.is_featured && (
+                <div className="absolute left-2 top-2 rounded-full bg-black px-3 py-1 text-[11px] font-semibold text-white">
+                  Cover
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-3 p-3">
+              <div className="flex items-center justify-between text-[11px] text-gray-500">
+                <span>Position {item.position ?? index}</span>
+                <span className="uppercase">{item.type}</span>
+              </div>
+
+              <div className="grid grid-cols-4 gap-2">
+                <form action={moveMediaAction}>
+                  <input type="hidden" name="mediaId" value={item.id} />
+                  <input type="hidden" name="direction" value="up" />
+                  <button
+                    type="submit"
+                    disabled={index === 0}
+                    className="w-full rounded-xl border bg-white p-2 disabled:opacity-40"
+                  >
+                    <ArrowUp className="mx-auto h-4 w-4" />
+                  </button>
+                </form>
+
+                <form action={moveMediaAction}>
+                  <input type="hidden" name="mediaId" value={item.id} />
+                  <input type="hidden" name="direction" value="down" />
+                  <button
+                    type="submit"
+                    disabled={index === sortedMedia.length - 1}
+                    className="w-full rounded-xl border bg-white p-2 disabled:opacity-40"
+                  >
+                    <ArrowDown className="mx-auto h-4 w-4" />
+                  </button>
+                </form>
+
+                <form action={setCoverAction}>
+                  <input type="hidden" name="mediaId" value={item.id} />
+                  <button
+                    type="submit"
+                    disabled={Boolean(item.is_featured)}
+                    className="w-full rounded-xl border bg-white p-2 disabled:opacity-40"
+                  >
+                    <Star className="mx-auto h-4 w-4" />
+                  </button>
+                </form>
+
+                <form
+                  action={deleteMediaAction}
+                  onSubmit={(event) => {
+                    if (
+                      !window.confirm(
+                        "Supprimer définitivement ce média du produit ?"
+                      )
+                    ) {
+                      event.preventDefault();
+                    }
+                  }}
+                >
+                  <input type="hidden" name="mediaId" value={item.id} />
+                  <input type="hidden" name="mediaUrl" value={item.url} />
+
+                  <button
+                    type="submit"
+                    className="w-full rounded-xl border border-red-200 bg-red-50 p-2 text-red-600"
+                  >
+                    <Trash2 className="mx-auto h-4 w-4" />
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

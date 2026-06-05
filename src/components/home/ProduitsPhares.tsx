@@ -12,7 +12,7 @@ const products = [
     title: "Spa Joy",
     category: "Bien-être",
     image: "/images/phares/spa-Joy.png",
-    href: "/fr/bien-etre",
+    href: "/fr/products/spa-joy",
   },
   {
     title: "Sauna Grandview",
