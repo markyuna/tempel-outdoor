@@ -1,50 +1,95 @@
-// src/components/home/ProduitsPhares.tsx
-
-"use client";
-
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { motion } from "framer-motion";
 
-const products = [
-  {
-    title: "Spa Joy",
-    category: "Bien-être",
-    image: "/images/phares/spa-Joy.png",
-    href: "/fr/products/spa-joy",
-  },
-  {
-    title: "Sauna Grandview",
-    category: "Bien-être",
-    image: "/images/phares/Grandview.png",
-    href: "/fr/bien-etre",
-  },
-  {
-    title: "Baby-foot Blanc",
-    category: "Loisirs",
-    image: "/images/phares/baby-foot-blanc.png",
-    href: "/fr/loisirs",
-  },
-  {
-    title: "Billard Table",
-    category: "Loisirs",
-    image: "/images/phares/billard-table.png",
-    href: "/fr/loisirs",
-  },
+import { createClient } from "@/lib/supabase/server";
+
+const FEATURED_SLUGS = [
+  "spa-joy",
+  "barrel-sauna-panorama",
+  "baby-foot-origin-duo-blanc",
+  "table-de-billard-convertible-noir",
 ];
 
-export default function ProduitsPhares() {
+type ProductMedia = {
+  id: string;
+  url: string;
+  alt: string | null;
+  type: "image" | "video";
+  is_featured: boolean | null;
+  position: number | null;
+};
+
+type Product = {
+  id: string;
+  name: string;
+  slug: string;
+  universe: string;
+  category: string;
+  product_media: ProductMedia[] | null;
+};
+
+function getCategoryLabel(product: Product) {
+  if (product.universe === "bien-etre") return "Bien-être";
+  if (product.universe === "loisirs") return "Loisirs";
+  if (product.universe === "fitness") return "Fitness";
+
+  return product.category;
+}
+
+function getProductImage(product: Product) {
+  const media = [...(product.product_media ?? [])]
+    .filter((item) => item.type === "image")
+    .sort((a, b) => {
+      if (a.is_featured && !b.is_featured) return -1;
+      if (!a.is_featured && b.is_featured) return 1;
+      return (a.position ?? 0) - (b.position ?? 0);
+    });
+
+  return media[0]?.url ?? "/images/placeholder-product.jpg";
+}
+
+export default async function ProduitsPhares() {
+  const supabase = await createClient();
+
+  const { data: products, error } = await supabase
+    .from("products")
+    .select(
+      `
+      id,
+      name,
+      slug,
+      universe,
+      category,
+      product_media (
+        id,
+        url,
+        alt,
+        type,
+        is_featured,
+        position
+      )
+    `
+    )
+    .in("slug", FEATURED_SLUGS)
+    .eq("status", "active");
+
+  if (error) {
+    console.error("Erreur ProduitsPhares:", error);
+  }
+
+  const sortedProducts = FEATURED_SLUGS.map((slug) =>
+    products?.find((product) => product.slug === slug)
+  ).filter(Boolean) as Product[];
+
+  if (sortedProducts.length === 0) {
+    return null;
+  }
+
   return (
     <section className="bg-[#f7f4ef] py-24">
       <div className="mx-auto max-w-7xl px-6">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8 }}
-          className="mb-16 flex flex-col justify-between gap-8 lg:flex-row lg:items-end"
-        >
+        <div className="mb-16 flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
           <div>
             <span className="mb-4 block text-sm font-medium uppercase tracking-[0.35em] text-[#b67c2d]">
               Produits phares
@@ -60,32 +105,24 @@ export default function ProduitsPhares() {
             qualité, leur design et leur capacité à transformer votre espace
             extérieur.
           </p>
-        </motion.div>
+        </div>
 
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-          {products.map((product, index) => (
-            <motion.div
-              key={product.title}
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{
-                duration: 0.7,
-                delay: index * 0.1,
-              }}
-            >
+          {sortedProducts.map((product) => {
+            const image = getProductImage(product);
+
+            return (
               <Link
-                href={product.href}
+                key={product.id}
+                href={`/fr/products/${product.slug}`}
                 className="group block overflow-hidden rounded-[32px] bg-white shadow-sm transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl"
               >
                 <div className="relative h-[280px] overflow-hidden">
                   <Image
-                    src={product.image}
-                    alt={product.title}
+                    src={image}
+                    alt={product.product_media?.[0]?.alt ?? product.name}
                     fill
-                    sizes="(max-width: 768px) 100vw,
-                           (max-width: 1280px) 50vw,
-                           25vw"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 25vw"
                     className="object-cover transition-transform duration-700 group-hover:scale-110"
                   />
 
@@ -94,11 +131,11 @@ export default function ProduitsPhares() {
 
                 <div className="p-6">
                   <span className="text-xs font-medium uppercase tracking-[0.25em] text-[#b67c2d]">
-                    {product.category}
+                    {getCategoryLabel(product)}
                   </span>
 
                   <h3 className="mt-3 text-2xl font-semibold text-black">
-                    {product.title}
+                    {product.name}
                   </h3>
 
                   <div className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-black transition-all duration-300 group-hover:gap-4">
@@ -107,8 +144,8 @@ export default function ProduitsPhares() {
                   </div>
                 </div>
               </Link>
-            </motion.div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>
