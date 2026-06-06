@@ -3,7 +3,14 @@
 "use client";
 
 import Image from "next/image";
-import { ArrowDown, ArrowUp, ImagePlus, Star, Trash2, Video } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ImagePlus,
+  Star,
+  Trash2,
+  Video,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
@@ -21,6 +28,8 @@ type ProductMedia = {
 
 type Props = {
   productId: string;
+  productName?: string;
+  productCategory?: string;
   media?: ProductMedia[];
   compact?: boolean;
   setCoverAction: (formData: FormData) => Promise<void>;
@@ -30,8 +39,63 @@ type Props = {
 
 const BUCKET_NAME = "product-media";
 
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/&/g, "et")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)+/g, "");
+}
+
+function getFileExtension(file: File) {
+  return file.name.split(".").pop()?.toLowerCase() || "jpg";
+}
+
+function getSeoBaseName({
+  productName,
+  productCategory,
+  mediaType,
+}: {
+  productName?: string;
+  productCategory?: string;
+  mediaType: "image" | "video";
+}) {
+  return slugify(
+    [
+      productCategory || "produit",
+      productName || "tempel-outdoor",
+      mediaType === "video" ? "video" : "image",
+    ]
+      .filter(Boolean)
+      .join(" ")
+  );
+}
+
+function getSeoAlt({
+  productName,
+  productCategory,
+  mediaType,
+}: {
+  productName?: string;
+  productCategory?: string;
+  mediaType: "image" | "video";
+}) {
+  const productLabel = productName || "produit Tempel Outdoor";
+  const categoryLabel = productCategory || "extérieur";
+
+  if (mediaType === "video") {
+    return `Vidéo du ${productLabel} - ${categoryLabel}`;
+  }
+
+  return `${productLabel} - ${categoryLabel} haut de gamme Tempel Outdoor`;
+}
+
 export default function ProductMediaUploader({
   productId,
+  productName,
+  productCategory,
   media = [],
   compact = false,
   setCoverAction,
@@ -65,9 +129,20 @@ export default function ProductMediaUploader({
       for (const [index, file] of files.entries()) {
         const isVideo = file.type.startsWith("video/");
         const mediaType = isVideo ? "video" : "image";
+        const fileExt = getFileExtension(file);
 
-        const fileExt = file.name.split(".").pop()?.toLowerCase() || "jpg";
-        const fileName = `${crypto.randomUUID()}.${fileExt}`;
+        const seoBaseName = getSeoBaseName({
+          productName,
+          productCategory,
+          mediaType,
+        });
+
+        const seoIndex = String(currentMaxPosition + index + 2).padStart(
+          2,
+          "0"
+        );
+
+        const fileName = `${seoBaseName}-${seoIndex}.${fileExt}`;
         const filePath = `${productId}/${fileName}`;
 
         const { data: uploadData, error: uploadError } = await supabase.storage
@@ -90,7 +165,11 @@ export default function ProductMediaUploader({
           product_id: productId,
           url: publicUrl,
           type: mediaType,
-          alt: file.name,
+          alt: getSeoAlt({
+            productName,
+            productCategory,
+            mediaType,
+          }),
           is_featured: shouldBeCover,
           position: currentMaxPosition + index + 1,
         });
@@ -112,7 +191,9 @@ export default function ProductMediaUploader({
       <h2 className="text-xl font-semibold">Aperçu médias</h2>
 
       <p className="mt-2 text-sm text-[#5f5a54]">
-        Ajoute, organise, supprime les médias et définis l’image cover.
+        Ajoute, organise, supprime les médias et définis l’image cover. Les noms
+        de fichiers et textes alternatifs sont générés automatiquement pour le
+        SEO.
       </p>
 
       <label className="mt-6 flex cursor-pointer items-center justify-center gap-3 rounded-2xl border border-dashed border-gray-300 bg-[#f7f4ee] px-5 py-8 text-center transition hover:bg-white">
@@ -143,7 +224,7 @@ export default function ProductMediaUploader({
               {item.type === "image" ? (
                 <Image
                   src={item.url}
-                  alt={item.alt || "Média produit"}
+                  alt={item.alt || "Média produit Tempel Outdoor"}
                   fill
                   sizes="260px"
                   className="object-cover"
@@ -169,6 +250,12 @@ export default function ProductMediaUploader({
                 <span>Position {item.position ?? index}</span>
                 <span className="uppercase">{item.type}</span>
               </div>
+
+              {item.alt && (
+                <p className="line-clamp-2 text-[11px] leading-4 text-black/50">
+                  Alt SEO : {item.alt}
+                </p>
+              )}
 
               <div className="grid grid-cols-4 gap-2">
                 <form action={moveMediaAction}>

@@ -424,14 +424,16 @@ export default async function AdminProductEditPage({ params }: PageProps) {
           </form>
 
           <aside className="rounded-3xl border bg-white p-8 shadow-sm">
-            <ProductMediaUploader
-              productId={id}
-              media={typedMedia}
-              compact
-              setCoverAction={setProductMediaCover}
-              moveMediaAction={moveProductMedia}
-              deleteMediaAction={deleteProductMedia}
-            />
+          <ProductMediaUploader
+            productId={product.id}
+            productName={product.name}
+            productCategory={product.category}
+            media={media ?? []}
+            compact={false}
+            setCoverAction={setProductMediaCover}
+            moveMediaAction={moveProductMedia}
+            deleteMediaAction={deleteProductMedia}
+          />
           </aside>
         </section>
 
