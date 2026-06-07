@@ -1,6 +1,9 @@
+// src/app/[locale]/realisations/page.tsx
+
 import Image from "next/image";
 import Link from "next/link";
 
+import BeforeAfterSlider from "@/components/realisations/BeforeAfterSlider";
 import { createClient } from "@/lib/supabase/server";
 
 type Props = {
@@ -9,11 +12,14 @@ type Props = {
   }>;
 };
 
+type MediaRole = "before" | "after";
+
 type RealisationMedia = {
   id: string;
   url: string;
   alt: string | null;
   type: string | null;
+  role: MediaRole | null;
   is_cover: boolean | null;
   position: number | null;
 };
@@ -29,13 +35,36 @@ type Realisation = {
   realisation_media: RealisationMedia[] | null;
 };
 
+function getSortedImages(media: RealisationMedia[] | null) {
+  return [...(media ?? [])]
+    .filter((item) => item.type === "image" || item.type === null)
+    .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+}
+
 function getCoverImage(media: RealisationMedia[] | null) {
-  if (!media || media.length === 0) return null;
+  const images = getSortedImages(media);
+
+  if (images.length === 0) return null;
 
   return (
-    media.find((item) => item.is_cover) ??
-    [...media].sort((a, b) => (a.position ?? 0) - (b.position ?? 0))[0]
+    images.find((item) => item.role === "after") ??
+    images.find((item) => item.is_cover) ??
+    images[0]
   );
+}
+
+function getBeforeAfterImages(media: RealisationMedia[] | null) {
+  const images = getSortedImages(media);
+
+  const before = images.find((item) => item.role === "before") ?? null;
+
+  const after =
+    images.find((item) => item.role === "after") ??
+    images.find((item) => item.is_cover) ??
+    images[0] ??
+    null;
+
+  return { before, after };
 }
 
 function getCategoryLabel(category: string) {
@@ -70,6 +99,7 @@ export default async function RealisationsPage({ params }: Props) {
         url,
         alt,
         type,
+        role,
         is_cover,
         position
       )
@@ -111,56 +141,85 @@ export default async function RealisationsPage({ params }: Props) {
           </div>
 
           {(realisations ?? []).length > 0 ? (
-            <div className="mt-16 grid gap-8 md:grid-cols-2 xl:grid-cols-3">
-              {(realisations ?? []).map((realisation) => {
+            <div className="mt-24 space-y-28 md:space-y-36">
+              {(realisations ?? []).map((realisation, index) => {
                 const cover = getCoverImage(realisation.realisation_media);
+                const { before, after } = getBeforeAfterImages(
+                  realisation.realisation_media
+                );
+
+                const isReversed = index % 2 !== 0;
 
                 return (
-                  <article
-                    key={realisation.id}
-                    className="group overflow-hidden rounded-[2rem] border border-black/10 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
-                  >
-                    <div className="relative aspect-[4/3] overflow-hidden bg-black/5">
-                      {cover ? (
-                        <Image
-                          src={cover.url}
-                          alt={cover.alt || realisation.title}
-                          fill
-                          sizes="(min-width: 1280px) 33vw, (min-width: 768px) 50vw, 100vw"
-                          className="object-cover transition duration-700 group-hover:scale-105"
-                        />
-                      ) : (
-                        <div className="flex h-full items-center justify-center text-sm text-black/35">
-                          Image à venir
-                        </div>
-                      )}
+                  <article key={realisation.id}>
+                    <div
+                      className={`grid items-center gap-12 lg:grid-cols-2 ${
+                        isReversed ? "lg:[&>*:first-child]:order-2" : ""
+                      }`}
+                    >
+                      <div>
+                        {before && after ? (
+                          <BeforeAfterSlider
+                            before={{
+                              url: before.url,
+                              alt: before.alt,
+                            }}
+                            after={{
+                              url: after.url,
+                              alt: after.alt,
+                            }}
+                            title={realisation.title}
+                          />
+                        ) : cover ? (
+                          <div className="group relative aspect-[4/3] overflow-hidden rounded-[2.5rem] bg-black/5 shadow-sm">
+                            <Image
+                              src={cover.url}
+                              alt={cover.alt || realisation.title}
+                              fill
+                              sizes="(min-width: 1024px) 50vw, 100vw"
+                              className="object-cover transition duration-700 group-hover:scale-105"
+                            />
 
-                      <div className="absolute left-5 top-5 rounded-full bg-white/90 px-4 py-2 text-xs font-medium uppercase tracking-[0.2em]">
-                        {getCategoryLabel(realisation.category)}
+                            <div className="absolute left-6 top-6 rounded-full bg-white/90 px-5 py-2 text-xs font-medium uppercase tracking-[0.22em] text-black shadow-sm">
+                              {getCategoryLabel(realisation.category)}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex aspect-[4/3] items-center justify-center rounded-[2.5rem] bg-black/5 text-sm text-black/35">
+                            Image à venir
+                          </div>
+                        )}
                       </div>
-                    </div>
 
-                    <div className="p-6">
-                      <div className="mb-3 flex items-center justify-between gap-4 text-sm text-black/45">
-                        <span>{realisation.city || "France"}</span>
-                        <span>Projet livré</span>
-                      </div>
-
-                      <h2 className="text-2xl font-semibold leading-tight">
-                        {realisation.title}
-                      </h2>
-
-                      {realisation.description && (
-                        <p className="mt-4 line-clamp-3 text-sm leading-6 text-black/60">
-                          {realisation.description}
+                      <div className="flex flex-col justify-center px-2 py-8 md:px-10 lg:px-14">
+                        <p className="text-sm uppercase tracking-[0.35em] text-[#b8872f]">
+                          Réalisation {String(index + 1).padStart(2, "0")}
                         </p>
-                      )}
 
-                      {realisation.client_quote && (
-                        <blockquote className="mt-5 border-l-2 border-[#b8872f] pl-4 text-sm italic text-black/60">
-                          “{realisation.client_quote}”
-                        </blockquote>
-                      )}
+                        <h2 className="mt-5 text-4xl font-semibold tracking-tight md:text-5xl xl:text-6xl">
+                          {realisation.title}
+                        </h2>
+
+                        <div className="mt-6 flex flex-wrap gap-3 text-sm text-black/50">
+                          <span>{realisation.city || "France"}</span>
+                          <span>•</span>
+                          <span>Projet livré</span>
+                        </div>
+
+                        {realisation.description && (
+                          <p className="mt-8 max-w-xl text-lg leading-9 text-black/65">
+                            {realisation.description}
+                          </p>
+                        )}
+
+                        {realisation.client_quote && (
+                          <blockquote className="mt-10 border-l-2 border-[#b8872f] pl-5 text-base italic leading-8 text-black/55">
+                            “{realisation.client_quote}”
+                          </blockquote>
+                        )}
+
+                        <div className="mt-10 h-px w-24 bg-gradient-to-r from-[#b8872f] to-transparent" />
+                      </div>
                     </div>
                   </article>
                 );

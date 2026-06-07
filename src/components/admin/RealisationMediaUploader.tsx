@@ -1,11 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import { ImagePlus, Star, Trash2 } from "lucide-react";
+import { ImagePlus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 
 import { createClient } from "@/lib/supabase/client";
+
+type MediaRole = "before" | "after";
 
 type RealisationMedia = {
   id: string;
@@ -13,6 +15,7 @@ type RealisationMedia = {
   url: string;
   alt: string | null;
   type: string | null;
+  role: MediaRole | null;
   is_cover: boolean | null;
   position: number | null;
 };
@@ -23,6 +26,20 @@ type Props = {
   realisationCategory?: string;
   realisationCity?: string | null;
   media?: RealisationMedia[];
+};
+
+type ImageSlotProps = {
+  title: string;
+  description: string;
+  role: MediaRole;
+  image: RealisationMedia | null;
+  isUploading: boolean;
+  uploadingRole: MediaRole | null;
+  onUpload: (
+    event: React.ChangeEvent<HTMLInputElement>,
+    role: MediaRole
+  ) => void;
+  onDelete: (mediaItem: RealisationMedia) => void;
 };
 
 const BUCKET_NAME = "realisations";
@@ -44,55 +61,145 @@ function getFileExtension(file: File) {
 
   if (file.type.includes("png")) return "png";
   if (file.type.includes("webp")) return "webp";
-  if (file.type.includes("video")) return "mp4";
 
   return "jpg";
 }
 
-function getSeoBaseName({
+function getSeoFileName({
   title,
   category,
   city,
-  mediaType,
+  role,
+  file,
 }: {
   title?: string;
   category?: string;
   city?: string | null;
-  mediaType: "image" | "video";
+  role: MediaRole;
+  file: File;
 }) {
-  return slugify(
+  const fileExt = getFileExtension(file);
+
+  const baseName = slugify(
     [
       category || "realisation",
       title || "installation-tempel-outdoor",
       city || "france",
-      mediaType,
+      role === "before" ? "avant" : "apres",
     ]
       .filter(Boolean)
       .join(" ")
   );
+
+  const uniqueId = crypto.randomUUID().slice(0, 8);
+
+  return `${baseName}-${uniqueId}.${fileExt}`;
 }
 
 function getSeoAlt({
   title,
   category,
   city,
-  mediaType,
+  role,
 }: {
   title?: string;
   category?: string;
   city?: string | null;
-  mediaType: "image" | "video";
+  role: MediaRole;
 }) {
   const location = city ? ` à ${city}` : "";
   const fallbackTitle = category
     ? `Installation ${category} Tempel Outdoor`
     : "Installation Tempel Outdoor";
 
-  if (mediaType === "video") {
-    return `Vidéo de ${title || fallbackTitle}${location}`;
-  }
+  return `${title || fallbackTitle}${location} - image ${
+    role === "before" ? "avant" : "après"
+  } réalisation client`;
+}
 
-  return `${title || fallbackTitle}${location} - réalisation client premium`;
+function getStoragePathFromUrl(url: string) {
+  try {
+    const parsedUrl = new URL(url);
+    return parsedUrl.pathname.split(`/${BUCKET_NAME}/`)[1] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function ImageSlot({
+  title,
+  description,
+  role,
+  image,
+  isUploading,
+  uploadingRole,
+  onUpload,
+  onDelete,
+}: ImageSlotProps) {
+  return (
+    <div className="overflow-hidden rounded-3xl border border-black/10 bg-[#f7f4ee]">
+      <div className="relative aspect-[4/3] bg-black/5">
+        {image ? (
+          <Image
+            src={image.url}
+            alt={image.alt || title}
+            fill
+            sizes="(min-width: 768px) 50vw, 100vw"
+            className="object-cover"
+          />
+        ) : (
+          <div className="flex h-full flex-col items-center justify-center px-6 text-center">
+            <ImagePlus className="mb-3 text-black/30" size={30} />
+            <p className="text-sm font-medium text-black/50">
+              Aucune image ajoutée
+            </p>
+          </div>
+        )}
+
+        <span className="absolute left-4 top-4 rounded-full bg-black px-4 py-2 text-xs font-medium uppercase tracking-[0.2em] text-white">
+          {title}
+        </span>
+      </div>
+
+      <div className="space-y-4 p-5">
+        <div>
+          <h3 className="text-base font-semibold">{title}</h3>
+          <p className="mt-1 text-sm leading-6 text-black/50">{description}</p>
+        </div>
+
+        {image?.alt && (
+          <p className="line-clamp-2 text-xs leading-5 text-black/45">
+            Alt SEO : {image.alt}
+          </p>
+        )}
+
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-full bg-black px-4 py-2.5 text-sm font-medium text-white transition hover:bg-black/80">
+            <ImagePlus size={16} />
+            {isUploading ? "Upload..." : image ? "Remplacer" : "Ajouter"}
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(event) => onUpload(event, role)}
+              disabled={Boolean(uploadingRole)}
+            />
+          </label>
+
+          {image && (
+            <button
+              type="button"
+              onClick={() => onDelete(image)}
+              className="inline-flex items-center gap-2 rounded-full border border-red-200 px-4 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-600 hover:text-white"
+            >
+              <Trash2 size={16} />
+              Supprimer
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function RealisationMediaUploader({
@@ -105,84 +212,102 @@ export default function RealisationMediaUploader({
   const router = useRouter();
   const supabase = createClient();
 
-  const [uploading, setUploading] = useState(false);
+  const [uploadingRole, setUploadingRole] = useState<MediaRole | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const sortedMedia = useMemo(() => {
-    return [...media].sort((a, b) => {
-      if (a.is_cover && !b.is_cover) return -1;
-      if (!a.is_cover && b.is_cover) return 1;
-      return (a.position ?? 9999) - (b.position ?? 9999);
-    });
+  const beforeImage = useMemo(() => {
+    return media.find((item) => item.role === "before") ?? null;
   }, [media]);
 
-  async function handleUpload(event: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(event.target.files ?? []);
-    if (files.length === 0) return;
+  const afterImage = useMemo(() => {
+    return (
+      media.find((item) => item.role === "after") ??
+      media.find((item) => item.is_cover) ??
+      null
+    );
+  }, [media]);
+
+  async function deleteExistingRoleImage(role: MediaRole) {
+    const existingItem = role === "before" ? beforeImage : afterImage;
+
+    if (!existingItem) return;
+
+    const storagePath = getStoragePathFromUrl(existingItem.url);
+
+    if (storagePath) {
+      await supabase.storage.from(BUCKET_NAME).remove([storagePath]);
+    }
+
+    await supabase.from("realisation_media").delete().eq("id", existingItem.id);
+  }
+
+  async function handleUpload(
+    event: React.ChangeEvent<HTMLInputElement>,
+    role: MediaRole
+  ) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      alert("Merci d'ajouter uniquement une image.");
+      event.target.value = "";
+      return;
+    }
 
     try {
-      setUploading(true);
+      setUploadingRole(role);
 
-      const currentMaxPosition =
-        sortedMedia.length > 0
-          ? Math.max(...sortedMedia.map((item) => item.position ?? 0))
-          : -1;
+      await deleteExistingRoleImage(role);
 
-      for (const [index, file] of files.entries()) {
-        const isVideo = file.type.startsWith("video/");
-        const mediaType = isVideo ? "video" : "image";
-        const fileExt = getFileExtension(file);
+      if (role === "after") {
+        await supabase
+          .from("realisation_media")
+          .update({ is_cover: false })
+          .eq("realisation_id", realisationId);
+      }
 
-        const seoBaseName = getSeoBaseName({
-          title: realisationTitle,
-          category: realisationCategory,
-          city: realisationCity,
-          mediaType,
+      const seoFileName = getSeoFileName({
+        title: realisationTitle,
+        category: realisationCategory,
+        city: realisationCity,
+        role,
+        file,
+      });
+
+      const filePath = `${realisationId}/${seoFileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from(BUCKET_NAME)
+        .upload(filePath, file, {
+          cacheControl: "3600",
+          upsert: false,
+          contentType: file.type,
         });
 
-        const seoIndex = String(currentMaxPosition + index + 2).padStart(
-          2,
-          "0"
-        );
+      if (uploadError) throw uploadError;
 
-        const uniqueId = crypto.randomUUID().slice(0, 8);
-        const seoFileName = `${seoBaseName}-${seoIndex}-${uniqueId}.${fileExt}`;
-        const filePath = `${realisationId}/${seoFileName}`;
+      const { data } = supabase.storage
+        .from(BUCKET_NAME)
+        .getPublicUrl(filePath);
 
-        const { error: uploadError } = await supabase.storage
-          .from(BUCKET_NAME)
-          .upload(filePath, file, {
-            cacheControl: "3600",
-            upsert: false,
-            contentType: file.type,
-          });
+      const { error: insertError } = await supabase
+        .from("realisation_media")
+        .insert({
+          realisation_id: realisationId,
+          url: data.publicUrl,
+          alt: getSeoAlt({
+            title: realisationTitle,
+            category: realisationCategory,
+            city: realisationCity,
+            role,
+          }),
+          type: "image",
+          role,
+          is_cover: role === "after",
+          position: role === "before" ? 0 : 1,
+        });
 
-        if (uploadError) throw uploadError;
-
-        const { data } = supabase.storage
-          .from(BUCKET_NAME)
-          .getPublicUrl(filePath);
-
-        const isFirstImage = sortedMedia.length === 0 && index === 0;
-
-        const { error: insertError } = await supabase
-          .from("realisation_media")
-          .insert({
-            realisation_id: realisationId,
-            url: data.publicUrl,
-            alt: getSeoAlt({
-              title: realisationTitle,
-              category: realisationCategory,
-              city: realisationCity,
-              mediaType,
-            }),
-            type: mediaType,
-            is_cover: isFirstImage,
-            position: currentMaxPosition + index + 1,
-          });
-
-        if (insertError) throw insertError;
-      }
+      if (insertError) throw insertError;
 
       event.target.value = "";
 
@@ -193,30 +318,7 @@ export default function RealisationMediaUploader({
       console.error("Erreur upload réalisation:", error);
       alert("Erreur lors de l'upload de l'image.");
     } finally {
-      setUploading(false);
-    }
-  }
-
-  async function handleSetCover(mediaId: string) {
-    try {
-      const { error: resetError } = await supabase
-        .from("realisation_media")
-        .update({ is_cover: false })
-        .eq("realisation_id", realisationId);
-
-      if (resetError) throw resetError;
-
-      const { error: coverError } = await supabase
-        .from("realisation_media")
-        .update({ is_cover: true })
-        .eq("id", mediaId);
-
-      if (coverError) throw coverError;
-
-      router.refresh();
-    } catch (error) {
-      console.error("Erreur couverture réalisation:", error);
-      alert("Erreur lors du changement de couverture.");
+      setUploadingRole(null);
     }
   }
 
@@ -225,11 +327,10 @@ export default function RealisationMediaUploader({
     if (!confirmDelete) return;
 
     try {
-      const url = new URL(mediaItem.url);
-      const path = url.pathname.split(`/${BUCKET_NAME}/`)[1];
+      const storagePath = getStoragePathFromUrl(mediaItem.url);
 
-      if (path) {
-        await supabase.storage.from(BUCKET_NAME).remove([path]);
+      if (storagePath) {
+        await supabase.storage.from(BUCKET_NAME).remove([storagePath]);
       }
 
       const { error } = await supabase
@@ -248,96 +349,37 @@ export default function RealisationMediaUploader({
 
   return (
     <section className="rounded-3xl border border-black/10 bg-white p-8 shadow-sm">
-      <div className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-center">
-        <div>
-          <h2 className="text-xl font-semibold">Images du projet</h2>
-          <p className="mt-2 text-sm text-black/50">
-            Les noms de fichiers et textes alternatifs sont générés
-            automatiquement pour améliorer le SEO.
-          </p>
-        </div>
-
-        <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-full bg-black px-5 py-3 text-sm font-medium text-white transition hover:bg-black/80">
-          <ImagePlus size={18} />
-          {uploading || isPending ? "Upload..." : "Ajouter images"}
-          <input
-            type="file"
-            accept="image/*,video/*"
-            multiple
-            className="hidden"
-            onChange={handleUpload}
-            disabled={uploading}
-          />
-        </label>
+      <div className="mb-8">
+        <h2 className="text-xl font-semibold">Images Avant / Après</h2>
+        <p className="mt-2 text-sm leading-6 text-black/50">
+          Ajoute une image avant et une image après pour créer l’effet de
+          comparaison au survol sur la page des réalisations.
+        </p>
       </div>
 
-      {sortedMedia.length > 0 ? (
-        <div className="grid gap-5 md:grid-cols-3">
-          {sortedMedia.map((item) => (
-            <div
-              key={item.id}
-              className="overflow-hidden rounded-3xl border border-black/10 bg-[#f7f4ee]"
-            >
-              <div className="relative aspect-[4/3] bg-black/5">
-                {item.type === "video" ? (
-                  <video
-                    src={item.url}
-                    controls
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <Image
-                    src={item.url}
-                    alt={item.alt || "Image réalisation Tempel Outdoor"}
-                    fill
-                    sizes="(min-width: 768px) 33vw, 100vw"
-                    className="object-cover"
-                  />
-                )}
+      <div className="grid gap-6 md:grid-cols-2">
+        <ImageSlot
+          title="Avant"
+          description="Image de l’espace avant l’installation."
+          role="before"
+          image={beforeImage}
+          isUploading={uploadingRole === "before" || isPending}
+          uploadingRole={uploadingRole}
+          onUpload={handleUpload}
+          onDelete={handleDelete}
+        />
 
-                {item.is_cover && (
-                  <span className="absolute left-3 top-3 rounded-full bg-black px-3 py-1 text-xs font-medium text-white">
-                    Couverture
-                  </span>
-                )}
-              </div>
-
-              <div className="space-y-4 p-4">
-                {item.alt && (
-                  <p className="line-clamp-2 text-xs leading-5 text-black/50">
-                    Alt SEO : {item.alt}
-                  </p>
-                )}
-
-                <div className="flex items-center justify-between gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleSetCover(item.id)}
-                    disabled={Boolean(item.is_cover)}
-                    className="inline-flex items-center gap-2 rounded-full border border-black/10 px-3 py-2 text-xs font-medium transition hover:bg-black hover:text-white disabled:opacity-40"
-                  >
-                    <Star size={14} />
-                    Couverture
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(item)}
-                    className="inline-flex items-center gap-2 rounded-full border border-red-200 px-3 py-2 text-xs font-medium text-red-600 transition hover:bg-red-600 hover:text-white"
-                  >
-                    <Trash2 size={14} />
-                    Supprimer
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="rounded-3xl border border-dashed border-black/15 p-10 text-center text-sm text-black/45">
-          Aucune image ajoutée pour cette réalisation.
-        </div>
-      )}
+        <ImageSlot
+          title="Après"
+          description="Image finale du projet installé. Elle sera utilisée comme image principale."
+          role="after"
+          image={afterImage}
+          isUploading={uploadingRole === "after" || isPending}
+          uploadingRole={uploadingRole}
+          onUpload={handleUpload}
+          onDelete={handleDelete}
+        />
+      </div>
     </section>
   );
 }
