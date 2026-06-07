@@ -166,7 +166,7 @@ export default async function CategoryProductsPage({
           </div>
 
           {products.length > 0 ? (
-            <div className="mt-10 grid gap-7 md:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-10 grid items-stretch gap-7 md:grid-cols-2 lg:grid-cols-3">
               {products.map((product) => {
                 const image = getCoverImage(product.product_media);
 
@@ -176,8 +176,8 @@ export default async function CategoryProductsPage({
                     href={`/${locale}/products/${product.slug}`}
                     className={
                       isLightCategory
-                        ? "group overflow-hidden rounded-[2rem] border border-black/10 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-2xl"
-                        : "group overflow-hidden rounded-[2rem] border border-white/15 bg-white/95 shadow-2xl backdrop-blur transition duration-300 hover:-translate-y-1 hover:bg-white"
+                        ? "group flex h-full flex-col overflow-hidden rounded-[2rem] border border-black/10 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-2xl"
+                        : "group flex h-full flex-col overflow-hidden rounded-[2rem] border border-white/15 bg-white/95 shadow-2xl backdrop-blur transition duration-300 hover:-translate-y-1 hover:bg-white"
                     }
                   >
                     <div className="relative aspect-[4/3] overflow-hidden bg-white">
@@ -198,18 +198,18 @@ export default async function CategoryProductsPage({
                       </div>
                     </div>
 
-                    <div className="p-6">
+                    <div className="flex flex-1 flex-col p-6">
                       <h2 className="text-2xl font-semibold tracking-tight">
                         {product.name}
                       </h2>
 
                       {product.short_description ? (
-                        <p className="mt-3 line-clamp-2 text-sm leading-6 text-neutral-600">
+                        <p className="mt-3 line-clamp-3 text-sm leading-6 text-neutral-600">
                           {product.short_description}
                         </p>
                       ) : null}
 
-                      <div className="mt-6 flex items-end justify-between gap-4">
+                      <div className="mt-auto flex items-end justify-between gap-4 pt-8">
                         <div>
                           {product.compare_at_price ? (
                             <p className="text-sm text-neutral-400 line-through">
@@ -222,7 +222,7 @@ export default async function CategoryProductsPage({
                           </p>
                         </div>
 
-                        <span className="rounded-full bg-black px-4 py-2 text-xs font-semibold text-white transition group-hover:bg-[#c76b2a]">
+                        <span className="shrink-0 rounded-full bg-black px-4 py-2 text-xs font-semibold text-white transition group-hover:bg-[#c76b2a]">
                           Voir le produit
                         </span>
                       </div>

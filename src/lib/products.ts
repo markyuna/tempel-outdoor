@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import { supabaseAdmin } from "@/lib/supabase/admin";
 import type {
   Product,
   CreateProductInput,
@@ -103,7 +102,9 @@ export async function updateProduct(product: UpdateProductInput) {
 }
 
 export async function deleteProduct(id: string) {
-  const { data: media, error: mediaError } = await supabaseAdmin
+  const supabase = await createClient();
+
+  const { data: media, error: mediaError } = await supabase
     .from("product_media")
     .select("id, url")
     .eq("product_id", id);
@@ -118,16 +119,17 @@ export async function deleteProduct(id: string) {
       .filter((path): path is string => Boolean(path)) || [];
 
   if (filesToDelete.length > 0) {
-    const { error: storageError } = await supabaseAdmin.storage
+    const { error: storageError } = await supabase.storage
       .from(PRODUCT_MEDIA_BUCKET)
       .remove(filesToDelete);
 
     if (storageError) {
+      console.error("Erreur suppression storage:", storageError);
       throw new Error(storageError.message);
     }
   }
 
-  const { error: productMediaError } = await supabaseAdmin
+  const { error: productMediaError } = await supabase
     .from("product_media")
     .delete()
     .eq("product_id", id);
@@ -136,7 +138,7 @@ export async function deleteProduct(id: string) {
     throw new Error(productMediaError.message);
   }
 
-  const { error } = await supabaseAdmin.from("products").delete().eq("id", id);
+  const { error } = await supabase.from("products").delete().eq("id", id);
 
   if (error) {
     throw new Error(error.message);

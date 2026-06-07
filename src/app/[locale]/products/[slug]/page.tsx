@@ -75,12 +75,20 @@ type Product = {
   product_spec_sections: ProductSpecSection[] | null;
 };
 
-const categoryVideos: Record<string, string> = {
+const CATEGORY_VIDEOS: Record<string, string> = {
   spa: "/videos/spa.mp4",
   sauna: "/videos/sauna.mp4",
   billard: "/videos/billard-tempel.mp4",
   "baby-foot": "/videos/fabrication.mp4",
   fitness: "/videos/fitness.mp4",
+};
+
+const CATEGORY_LABELS: Record<string, string> = {
+  spa: "Spa",
+  sauna: "Sauna",
+  "baby-foot": "Baby-foot",
+  billard: "Billard",
+  fitness: "Fitness",
 };
 
 async function getProduct(slug: string): Promise<Product | null> {
@@ -140,7 +148,9 @@ async function getProduct(slug: string): Promise<Product | null> {
     .eq("status", "active")
     .single();
 
-  if (error || !data) return null;
+  if (error || !data) {
+    return null;
+  }
 
   return data as Product;
 }
@@ -149,22 +159,21 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const product = await getProduct(slug);
 
+  if (!product) {
+    return {
+      title: "Produit introuvable | Tempel Outdoor",
+      description: "Ce produit n'est pas disponible.",
+    };
+  }
+
   return {
-    title: product ? `${product.name} | Tempel Outdoor` : "Produit introuvable",
-    description: product?.short_description || product?.description || "",
+    title: `${product.name} | Tempel Outdoor`,
+    description: product.short_description || product.description || "",
   };
 }
 
 function getCategoryLabel(category: string) {
-  const labels: Record<string, string> = {
-    spa: "Spa",
-    sauna: "Sauna",
-    "baby-foot": "Baby-foot",
-    billard: "Billard",
-    fitness: "Fitness",
-  };
-
-  return labels[category] || category;
+  return CATEGORY_LABELS[category] || category;
 }
 
 function sortMedia(media: ProductMedia[]) {
@@ -176,22 +185,30 @@ function sortMedia(media: ProductMedia[]) {
   });
 }
 
+function sortVariants(variants: ProductVariant[]) {
+  return [...variants].sort(
+    (a, b) => (a.position ?? 999) - (b.position ?? 999)
+  );
+}
+
+function sortOptions(options: ProductOption[]) {
+  return [...options].sort((a, b) => a.position - b.position);
+}
+
 export default async function ProductPage({ params }: Props) {
   const { locale, slug } = await params;
   const product = await getProduct(slug);
 
-  if (!product) notFound();
+  if (!product) {
+    notFound();
+  }
 
   const media = sortMedia(product.product_media ?? []);
-  const variants = [...(product.product_variants ?? [])].sort(
-    (a, b) => (a.position ?? 999) - (b.position ?? 999)
-  );
-  const options = [...(product.product_options ?? [])].sort(
-    (a, b) => a.position - b.position
-  );
+  const variants = sortVariants(product.product_variants ?? []);
+  const options = sortOptions(product.product_options ?? []);
 
   const storyVideoUrl =
-    categoryVideos[product.category] ?? "/videos/tempel-outdoor.mp4";
+    CATEGORY_VIDEOS[product.category] ?? "/videos/tempel-outdoor.mp4";
 
   return (
     <main className="min-h-screen bg-[#f7f4ee] text-[#181512]">
