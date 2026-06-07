@@ -9,12 +9,6 @@ import ProductOptionsEditor from "@/components/admin/ProductOptionsEditor";
 import ProductSpecsEditor from "@/components/admin/ProductSpecsEditor";
 import ProductVariantsEditor from "@/components/admin/ProductVariantsEditor";
 import { createClient } from "@/lib/supabase/server";
-import type {
-  ProductMedia,
-  ProductOption,
-  ProductSpecItem,
-  ProductSpecSection,
-} from "@/types/product";
 
 type PageProps = {
   params: Promise<{
@@ -23,6 +17,15 @@ type PageProps = {
 };
 
 const BUCKET_NAME = "product-media";
+
+function getStoragePathFromPublicUrl(url: string) {
+  const marker = `/storage/v1/object/public/${BUCKET_NAME}/`;
+  const index = url.indexOf(marker);
+
+  if (index === -1) return null;
+
+  return decodeURIComponent(url.slice(index + marker.length));
+}
 
 export default async function AdminProductEditPage({ params }: PageProps) {
   const { id } = await params;
@@ -83,6 +86,7 @@ export default async function AdminProductEditPage({ params }: PageProps) {
     }
 
     revalidatePath(`/admin/products/${id}/edit`);
+    revalidatePath(`/fr/products/${slug}`);
     redirect(`/admin/products/${id}/edit`);
   }
 
@@ -106,74 +110,41 @@ export default async function AdminProductEditPage({ params }: PageProps) {
 
     const { error: coverError } = await supabase
       .from("product_media")
-      .update({
-        is_featured: true,
-        position: 0,
-      })
-      .eq("id", mediaId);
+      .update({ is_featured: true })
+      .eq("id", mediaId)
+      .eq("product_id", id);
 
     if (coverError) {
       throw new Error(`Erreur cover média: ${coverError.message}`);
     }
 
     revalidatePath(`/admin/products/${id}/edit`);
+    revalidatePath(`/fr/products/${product.slug}`);
   }
 
-  async function moveProductMedia(formData: FormData) {
+  async function reorderProductMedia(mediaIds: string[]) {
     "use server";
 
-    const mediaId = String(formData.get("mediaId") || "");
-    const direction = String(formData.get("direction") || "");
-
-    if (!mediaId || (direction !== "up" && direction !== "down")) return;
+    if (!Array.isArray(mediaIds) || mediaIds.length === 0) return;
 
     const supabase = await createClient();
 
-    const { data: items, error } = await supabase
-      .from("product_media")
-      .select("id, position, is_featured")
-      .eq("product_id", id)
-      .order("is_featured", { ascending: false })
-      .order("position", { ascending: true });
-
-    if (error) {
-      throw new Error(`Erreur récupération médias: ${error.message}`);
-    }
-
-    const mediaItems = items ?? [];
-    const currentIndex = mediaItems.findIndex((item) => item.id === mediaId);
-    const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
-
-    if (
-      currentIndex === -1 ||
-      targetIndex < 0 ||
-      targetIndex >= mediaItems.length
-    ) {
-      return;
-    }
-
-    const reordered = [...mediaItems];
-    const [currentItem] = reordered.splice(currentIndex, 1);
-
-    reordered.splice(targetIndex, 0, currentItem);
-
     await Promise.all(
-      reordered.map(async (item, index) => {
-        const { error: updateError } = await supabase
+      mediaIds.map(async (mediaId, index) => {
+        const { error } = await supabase
           .from("product_media")
-          .update({
-            position: index,
-            is_featured: index === 0,
-          })
-          .eq("id", item.id);
+          .update({ position: index })
+          .eq("id", mediaId)
+          .eq("product_id", id);
 
-        if (updateError) {
-          throw new Error(`Erreur ordre média: ${updateError.message}`);
+        if (error) {
+          throw new Error(`Erreur réorganisation médias: ${error.message}`);
         }
       })
     );
 
     revalidatePath(`/admin/products/${id}/edit`);
+    revalidatePath(`/fr/products/${product.slug}`);
   }
 
   async function deleteProductMedia(formData: FormData) {
@@ -186,21 +157,17 @@ export default async function AdminProductEditPage({ params }: PageProps) {
 
     const supabase = await createClient();
 
-    const marker = `/storage/v1/object/public/${BUCKET_NAME}/`;
-    const index = mediaUrl.indexOf(marker);
+    const storagePath = getStoragePathFromPublicUrl(mediaUrl);
 
-    if (index !== -1) {
-      const storagePath = decodeURIComponent(
-        mediaUrl.slice(index + marker.length)
-      );
-
+    if (storagePath) {
       await supabase.storage.from(BUCKET_NAME).remove([storagePath]);
     }
 
     const { error: deleteError } = await supabase
       .from("product_media")
       .delete()
-      .eq("id", mediaId);
+      .eq("id", mediaId)
+      .eq("product_id", id);
 
     if (deleteError) {
       throw new Error(`Erreur suppression média: ${deleteError.message}`);
@@ -216,25 +183,27 @@ export default async function AdminProductEditPage({ params }: PageProps) {
       throw new Error(`Erreur reload médias: ${remainingError.message}`);
     }
 
-    if (remainingMedia.length > 0) {
-      await Promise.all(
-        remainingMedia.map(async (item, index) => {
-          const { error: updateError } = await supabase
-            .from("product_media")
-            .update({
-              position: index,
-              is_featured: index === 0,
-            })
-            .eq("id", item.id);
+    await Promise.all(
+      (remainingMedia ?? []).map(async (item, index) => {
+        const { error: updateError } = await supabase
+          .from("product_media")
+          .update({
+            position: index,
+            is_featured: index === 0,
+          })
+          .eq("id", item.id)
+          .eq("product_id", id);
 
-          if (updateError) {
-            throw new Error(`Erreur réorganisation médias: ${updateError.message}`);
-          }
-        })
-      );
-    }
+        if (updateError) {
+          throw new Error(
+            `Erreur réorganisation médias: ${updateError.message}`
+          );
+        }
+      })
+    );
 
     revalidatePath(`/admin/products/${id}/edit`);
+    revalidatePath(`/fr/products/${product.slug}`);
   }
 
   const [
@@ -247,7 +216,6 @@ export default async function AdminProductEditPage({ params }: PageProps) {
       .from("product_media")
       .select("*")
       .eq("product_id", id)
-      .order("is_featured", { ascending: false })
       .order("position", { ascending: true }),
 
     supabase
@@ -258,7 +226,12 @@ export default async function AdminProductEditPage({ params }: PageProps) {
 
     supabase
       .from("product_spec_sections")
-      .select("*")
+      .select(
+        `
+        *,
+        product_spec_items (*)
+      `
+      )
       .eq("product_id", id)
       .order("position", { ascending: true }),
 
@@ -269,280 +242,200 @@ export default async function AdminProductEditPage({ params }: PageProps) {
       .order("position", { ascending: true }),
   ]);
 
-  const typedMedia = (media ?? []) as ProductMedia[];
-  const sectionIds = sections?.map((section) => section.id) ?? [];
-
-  const { data: specItems } =
-    sectionIds.length > 0
-      ? await supabase
-          .from("product_spec_items")
-          .select("*")
-          .in("section_id", sectionIds)
-          .order("position", { ascending: true })
-      : { data: [] };
-
-  const sectionsWithItems: ProductSpecSection[] =
-    sections?.map((section) => ({
-      ...section,
-      items:
-        specItems?.filter(
-          (item: ProductSpecItem) => item.section_id === section.id
-        ) ?? [],
-    })) ?? [];
-
   return (
-    <main className="min-h-screen bg-[#f7f4ee] text-[#181512]">
-      <div className="mx-auto max-w-7xl px-6 py-12">
-        <div className="mb-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <Link
-              href="/admin/products"
-              className="text-sm font-medium text-[#b87932] transition hover:text-black"
-            >
-              ← Retour aux produits
-            </Link>
+    <main className="min-h-screen bg-[#f7f4ee] px-6 py-12 text-black">
+      <div className="mx-auto max-w-7xl">
+      <div className="mb-8 flex flex-wrap items-center gap-4">
+        <Link
+          href="/admin"
+          className="inline-flex items-center rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-medium text-black transition hover:bg-black hover:text-white"
+        >
+          Dashboard Admin
+        </Link>
 
-            <h1 className="mt-4 text-4xl font-semibold tracking-tight">
-              {product.name}
-            </h1>
+        <Link
+          href="/admin/products"
+          className="text-sm text-black/60 transition hover:text-black"
+        >
+          ← Retour aux produits
+        </Link>
+      </div>
 
-            <p className="mt-2 text-sm text-[#5f5a54]">
-              Modifier les informations, médias, options et fiche technique du
-              produit.
-            </p>
-          </div>
+        <div className="mb-8">
+          <p className="text-sm uppercase tracking-[0.3em] text-black/45">
+            Admin
+          </p>
 
-          <Link
-            href={`/fr/products/${product.slug}`}
-            className="rounded-full bg-black px-6 py-3 text-sm font-semibold text-white transition hover:bg-neutral-800"
-          >
-            Voir côté boutique
-          </Link>
+          <h1 className="mt-2 text-4xl font-semibold">Modifier le produit</h1>
         </div>
 
-        <section className="grid gap-8 lg:grid-cols-[1fr_0.8fr]">
-          <form
-            action={updateProduct}
-            className="rounded-3xl border bg-white p-8 shadow-sm"
-          >
-            <h2 className="text-xl font-semibold">Informations générales</h2>
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_430px]">
+          <form action={updateProduct} className="rounded-3xl border bg-white p-8">
+            <div className="grid gap-6 md:grid-cols-2">
+              <label className="space-y-2">
+                <span className="text-sm font-medium">Nom</span>
+                <input
+                  name="name"
+                  defaultValue={product.name ?? ""}
+                  required
+                  className="w-full rounded-2xl border px-4 py-3 outline-none focus:border-black"
+                />
+              </label>
 
-            <div className="mt-8 grid gap-5">
-              <Input
-                label="Nom du produit"
-                name="name"
-                defaultValue={product.name}
-              />
+              <label className="space-y-2">
+                <span className="text-sm font-medium">Slug</span>
+                <input
+                  name="slug"
+                  defaultValue={product.slug ?? ""}
+                  required
+                  className="w-full rounded-2xl border px-4 py-3 outline-none focus:border-black"
+                />
+              </label>
 
-              <Input label="Slug" name="slug" defaultValue={product.slug} />
-
-              <div className="grid gap-5 md:grid-cols-2">
-                <Input
-                  label="Univers"
+              <label className="space-y-2">
+                <span className="text-sm font-medium">Univers</span>
+                <select
                   name="universe"
-                  defaultValue={product.universe ?? ""}
-                />
+                  defaultValue={product.universe ?? "bien-etre"}
+                  className="w-full rounded-2xl border px-4 py-3 outline-none focus:border-black"
+                >
+                  <option value="bien-etre">Bien-être</option>
+                  <option value="loisirs">Loisirs</option>
+                  <option value="fitness">Fitness</option>
+                </select>
+              </label>
 
-                <Input
-                  label="Catégorie"
+              <label className="space-y-2">
+                <span className="text-sm font-medium">Catégorie</span>
+                <select
                   name="category"
-                  defaultValue={product.category ?? ""}
-                />
-              </div>
+                  defaultValue={product.category ?? "spa"}
+                  className="w-full rounded-2xl border px-4 py-3 outline-none focus:border-black"
+                >
+                  <option value="spa">Spa</option>
+                  <option value="sauna">Sauna</option>
+                  <option value="baby-foot">Baby-foot</option>
+                  <option value="billard">Billard</option>
+                  <option value="fitness">Fitness</option>
+                </select>
+              </label>
 
-              <div className="grid gap-5 md:grid-cols-3">
-                <Input
-                  label="Prix"
+              <label className="space-y-2">
+                <span className="text-sm font-medium">Prix</span>
+                <input
+                  type="number"
                   name="price"
-                  type="number"
-                  defaultValue={product.price ?? ""}
+                  defaultValue={product.price ?? 0}
+                  className="w-full rounded-2xl border px-4 py-3 outline-none focus:border-black"
                 />
+              </label>
 
-                <Input
-                  label="Prix barré"
+              <label className="space-y-2">
+                <span className="text-sm font-medium">Prix barré</span>
+                <input
+                  type="number"
                   name="compare_at_price"
-                  type="number"
                   defaultValue={product.compare_at_price ?? ""}
+                  className="w-full rounded-2xl border px-4 py-3 outline-none focus:border-black"
                 />
+              </label>
 
-                <Input
-                  label="Stock"
-                  name="stock"
+              <label className="space-y-2">
+                <span className="text-sm font-medium">Stock</span>
+                <input
                   type="number"
+                  name="stock"
                   defaultValue={product.stock ?? 0}
+                  className="w-full rounded-2xl border px-4 py-3 outline-none focus:border-black"
                 />
-              </div>
+              </label>
 
-              <div className="grid gap-5 md:grid-cols-2">
-                <Select
-                  label="Statut"
+              <label className="space-y-2">
+                <span className="text-sm font-medium">Statut</span>
+                <select
                   name="status"
                   defaultValue={product.status ?? "draft"}
-                  options={[
-                    { label: "Draft", value: "draft" },
-                    { label: "Active", value: "active" },
-                    { label: "Archived", value: "archived" },
-                  ]}
-                />
+                  className="w-full rounded-2xl border px-4 py-3 outline-none focus:border-black"
+                >
+                  <option value="active">Actif</option>
+                  <option value="draft">Brouillon</option>
+                  <option value="archived">Archivé</option>
+                </select>
+              </label>
 
-                <Select
-                  label="Produit mis en avant"
+              <label className="space-y-2 md:col-span-2">
+                <span className="text-sm font-medium">Délai de livraison</span>
+                <input
+                  name="delivery_time"
+                  defaultValue={product.delivery_time ?? ""}
+                  className="w-full rounded-2xl border px-4 py-3 outline-none focus:border-black"
+                />
+              </label>
+
+              <label className="flex items-center gap-3 rounded-2xl border px-4 py-3">
+                <input
+                  type="checkbox"
                   name="featured"
-                  defaultValue={product.featured ? "true" : "false"}
-                  options={[
-                    { label: "Non", value: "false" },
-                    { label: "Oui", value: "true" },
-                  ]}
+                  value="true"
+                  defaultChecked={Boolean(product.featured)}
                 />
-              </div>
+                <span className="text-sm font-medium">Produit phare</span>
+              </label>
 
-              <Input
-                label="Délai de livraison"
-                name="delivery_time"
-                defaultValue={product.delivery_time ?? ""}
-              />
+              <label className="space-y-2 md:col-span-2">
+                <span className="text-sm font-medium">Description courte</span>
+                <textarea
+                  name="short_description"
+                  defaultValue={product.short_description ?? ""}
+                  rows={3}
+                  className="w-full rounded-2xl border px-4 py-3 outline-none focus:border-black"
+                />
+              </label>
 
-              <Textarea
-                label="Description courte"
-                name="short_description"
-                defaultValue={product.short_description ?? ""}
-              />
-
-              <Textarea
-                label="Description complète"
-                name="description"
-                defaultValue={product.description ?? ""}
-              />
-
-              <button
-                type="submit"
-                className="mt-4 rounded-full bg-black px-8 py-4 text-sm font-semibold text-white transition hover:bg-[#c76b2a]"
-              >
-                Enregistrer les modifications
-              </button>
+              <label className="space-y-2 md:col-span-2">
+                <span className="text-sm font-medium">Description</span>
+                <textarea
+                  name="description"
+                  defaultValue={product.description ?? ""}
+                  rows={6}
+                  className="w-full rounded-2xl border px-4 py-3 outline-none focus:border-black"
+                />
+              </label>
             </div>
+
+            <button
+              type="submit"
+              className="mt-8 rounded-full bg-black px-6 py-3 text-sm font-semibold text-white transition hover:bg-black/80"
+            >
+              Enregistrer les modifications
+            </button>
           </form>
 
-          <aside className="rounded-3xl border bg-white p-8 shadow-sm">
-          <ProductMediaUploader
-            productId={product.id}
-            productName={product.name}
-            productCategory={product.category}
-            media={media ?? []}
-            compact={false}
-            setCoverAction={setProductMediaCover}
-            moveMediaAction={moveProductMedia}
-            deleteMediaAction={deleteProductMedia}
-          />
+          <aside className="lg:sticky lg:top-8 lg:self-start">
+            <ProductMediaUploader
+              productId={product.id}
+              productName={product.name}
+              productCategory={product.category}
+              media={media ?? []}
+              setCoverAction={setProductMediaCover}
+              reorderMediaAction={reorderProductMedia}
+              deleteMediaAction={deleteProductMedia}
+            />
           </aside>
-        </section>
+        </div>
 
-        <div className="mt-8">
+        <div className="mt-8 grid gap-8">
           <ProductVariantsEditor
-            productId={id}
-            media={typedMedia}
+            productId={product.id}
             variants={variants ?? []}
+            media={media ?? []}
           />
-        </div>
 
-        <div className="mt-8">
-          <ProductOptionsEditor
-            productId={id}
-            options={(options ?? []) as ProductOption[]}
-          />
-        </div>
+          <ProductOptionsEditor productId={product.id} options={options ?? []} />
 
-        <div className="mt-8">
-          <ProductSpecsEditor productId={id} sections={sectionsWithItems} />
+          <ProductSpecsEditor productId={product.id} sections={sections ?? []} />
         </div>
       </div>
     </main>
-  );
-}
-
-function Input({
-  label,
-  name,
-  defaultValue,
-  type = "text",
-}: {
-  label: string;
-  name: string;
-  defaultValue: string | number;
-  type?: string;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-2 block text-sm font-medium text-[#5f5a54]">
-        {label}
-      </span>
-
-      <input
-        name={name}
-        type={type}
-        defaultValue={defaultValue}
-        className="w-full rounded-2xl border bg-[#f7f4ee] px-4 py-3 text-sm outline-none transition focus:border-black focus:bg-white"
-      />
-    </label>
-  );
-}
-
-function Textarea({
-  label,
-  name,
-  defaultValue,
-}: {
-  label: string;
-  name: string;
-  defaultValue: string;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-2 block text-sm font-medium text-[#5f5a54]">
-        {label}
-      </span>
-
-      <textarea
-        name={name}
-        defaultValue={defaultValue}
-        rows={6}
-        className="w-full rounded-2xl border bg-[#f7f4ee] px-4 py-3 text-sm leading-7 outline-none transition focus:border-black focus:bg-white"
-      />
-    </label>
-  );
-}
-
-function Select({
-  label,
-  name,
-  defaultValue,
-  options,
-}: {
-  label: string;
-  name: string;
-  defaultValue: string;
-  options: {
-    label: string;
-    value: string;
-  }[];
-}) {
-  return (
-    <label className="block">
-      <span className="mb-2 block text-sm font-medium text-[#5f5a54]">
-        {label}
-      </span>
-
-      <select
-        name={name}
-        defaultValue={defaultValue}
-        className="w-full rounded-2xl border bg-[#f7f4ee] px-4 py-3 text-sm outline-none transition focus:border-black focus:bg-white"
-      >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </label>
   );
 }

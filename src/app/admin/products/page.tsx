@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LayoutDashboard } from "lucide-react";
 
 import DeleteProductButton from "@/components/admin/DeleteProductButton";
 import { getProducts } from "@/lib/products";
@@ -8,8 +9,20 @@ export default async function AdminProductsPage() {
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-16">
-      <div className="flex items-center justify-between">
-        <h1 className="text-4xl font-semibold">Products</h1>
+      <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+        <div>
+          <div className="mb-4 flex items-center gap-3">
+            <Link
+              href="/admin"
+              className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-medium transition hover:bg-black hover:text-white"
+            >
+              <LayoutDashboard className="h-4 w-4" />
+              Dashboard
+            </Link>
+          </div>
+
+          <h1 className="text-4xl font-semibold">Products</h1>
+        </div>
 
         <Link
           href="/admin/products/create"
@@ -39,10 +52,22 @@ export default async function AdminProductsPage() {
                 className="border-b transition hover:bg-gray-50"
               >
                 <td className="p-4 font-medium">{product.name}</td>
-                <td className="p-4">{product.universe || "-"}</td>
-                <td className="p-4">{product.category || "-"}</td>
-                <td className="p-4">{product.price} €</td>
-                <td className="p-4">{product.stock}</td>
+
+                <td className="p-4">
+                  {product.universe || "-"}
+                </td>
+
+                <td className="p-4">
+                  {product.category || "-"}
+                </td>
+
+                <td className="p-4">
+                  {product.price} €
+                </td>
+
+                <td className="p-4">
+                  {product.stock}
+                </td>
 
                 <td className="p-4">
                   <div className="flex items-center gap-2">
@@ -54,7 +79,7 @@ export default async function AdminProductsPage() {
                     </Link>
 
                     <Link
-                      href={`/fr/produits/${product.slug}`}
+                      href={`/fr/products/${product.slug}`}
                       target="_blank"
                       className="rounded-full border px-4 py-2 text-xs font-semibold transition hover:bg-gray-100"
                     >
@@ -72,7 +97,10 @@ export default async function AdminProductsPage() {
 
             {products.length === 0 && (
               <tr>
-                <td colSpan={6} className="p-10 text-center text-gray-500">
+                <td
+                  colSpan={6}
+                  className="p-10 text-center text-gray-500"
+                >
                   No products found.
                 </td>
               </tr>

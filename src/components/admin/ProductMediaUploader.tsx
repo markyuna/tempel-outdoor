@@ -4,15 +4,23 @@
 
 import Image from "next/image";
 import {
-  ArrowDown,
-  ArrowUp,
-  ImagePlus,
-  Star,
-  Trash2,
-  Video,
-} from "lucide-react";
+  DndContext,
+  type DragEndEvent,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  rectSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { GripVertical, ImagePlus, Star, Trash2, Video } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 
 import { createClient } from "@/lib/supabase/client";
 
@@ -33,7 +41,7 @@ type Props = {
   media?: ProductMedia[];
   compact?: boolean;
   setCoverAction: (formData: FormData) => Promise<void>;
-  moveMediaAction: (formData: FormData) => Promise<void>;
+  reorderMediaAction: (mediaIds: string[]) => Promise<void>;
   deleteMediaAction: (formData: FormData) => Promise<void>;
 };
 
@@ -92,6 +100,136 @@ function getSeoAlt({
   return `${productLabel} - ${categoryLabel} haut de gamme Tempel Outdoor`;
 }
 
+function SortableMediaCard({
+  item,
+  index,
+  setCoverAction,
+  deleteMediaAction,
+}: {
+  item: ProductMedia;
+  index: number;
+  setCoverAction: (formData: FormData) => Promise<void>;
+  deleteMediaAction: (formData: FormData) => Promise<void>;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item.id });
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+      }}
+      className={`group overflow-hidden rounded-2xl border border-black/10 bg-[#f7f4ee] transition ${
+        isDragging ? "z-20 scale-[1.02] shadow-xl" : "shadow-sm"
+      }`}
+    >
+      <div className="relative aspect-[4/3] bg-white">
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          className="absolute right-2 top-2 z-10 flex h-8 w-8 cursor-grab items-center justify-center rounded-full bg-white/95 text-black shadow-sm transition hover:bg-black hover:text-white active:cursor-grabbing"
+          aria-label="Déplacer le média"
+          title="Déplacer"
+        >
+          <GripVertical className="h-4 w-4" />
+        </button>
+
+        {item.type === "image" ? (
+          <Image
+            src={item.url}
+            alt={item.alt || "Média produit Tempel Outdoor"}
+            fill
+            sizes="180px"
+            className="object-cover"
+          />
+        ) : (
+          <video
+            src={item.url}
+            muted
+            controls
+            className="h-full w-full object-cover"
+          />
+        )}
+
+        {item.is_featured && (
+          <div className="absolute left-2 top-2 rounded-full bg-black px-3 py-1 text-[10px] font-semibold text-white">
+            Cover
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-2 p-3">
+        <div className="flex items-center justify-between gap-2 text-[10px] text-gray-500">
+          <span>Position {index}</span>
+          <span className="uppercase">{item.type}</span>
+        </div>
+
+        {item.alt && (
+          <p className="line-clamp-2 min-h-8 text-[11px] leading-4 text-black/50">
+            Alt SEO : {item.alt}
+          </p>
+        )}
+
+        <div className="flex items-center gap-2 pt-1">
+          <form action={setCoverAction}>
+            <input type="hidden" name="mediaId" value={item.id} />
+
+            <button
+              type="submit"
+              disabled={Boolean(item.is_featured)}
+              className={`flex h-9 w-9 items-center justify-center rounded-full border transition disabled:cursor-not-allowed disabled:opacity-40 ${
+                item.is_featured
+                  ? "border-black bg-black text-[#d7b86e]"
+                  : "border-black/10 bg-white text-black hover:bg-black hover:text-[#d7b86e]"
+              }`}
+              title="Définir comme cover"
+              aria-label="Définir comme cover"
+            >
+              <Star
+                className={`h-4 w-4 ${
+                  item.is_featured ? "fill-current" : ""
+                }`}
+              />
+            </button>
+          </form>
+
+          <form
+            action={deleteMediaAction}
+            onSubmit={(event) => {
+              if (
+                !window.confirm("Supprimer définitivement ce média du produit ?")
+              ) {
+                event.preventDefault();
+              }
+            }}
+          >
+            <input type="hidden" name="mediaId" value={item.id} />
+            <input type="hidden" name="mediaUrl" value={item.url} />
+
+            <button
+              type="submit"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-red-200 bg-red-50 text-red-600 transition hover:bg-red-600 hover:text-white"
+              title="Supprimer"
+              aria-label="Supprimer"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ProductMediaUploader({
   productId,
   productName,
@@ -99,23 +237,47 @@ export default function ProductMediaUploader({
   media = [],
   compact = false,
   setCoverAction,
-  moveMediaAction,
+  reorderMediaAction,
   deleteMediaAction,
 }: Props) {
   const router = useRouter();
   const supabase = createClient();
+
   const [uploading, setUploading] = useState(false);
+  const [orderedIds, setOrderedIds] = useState<string[] | null>(null);
+  const [isPending, startTransition] = useTransition();
 
   const sortedMedia = useMemo(() => {
-    return [...media].sort((a, b) => {
-      if (a.is_featured && !b.is_featured) return -1;
-      if (!a.is_featured && b.is_featured) return 1;
-      return (a.position ?? 9999) - (b.position ?? 9999);
-    });
+    return [...media].sort(
+      (a, b) => (a.position ?? 9999) - (b.position ?? 9999)
+    );
   }, [media]);
+
+  const items = useMemo(() => {
+    if (!orderedIds) return sortedMedia;
+
+    const mediaById = new Map(sortedMedia.map((item) => [item.id, item]));
+
+    const orderedItems = orderedIds
+      .map((id) => mediaById.get(id))
+      .filter(Boolean) as ProductMedia[];
+
+    const newItems = sortedMedia.filter((item) => !orderedIds.includes(item.id));
+
+    return [...orderedItems, ...newItems];
+  }, [orderedIds, sortedMedia]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 6,
+      },
+    })
+  );
 
   async function handleUpload(event: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files || []);
+
     if (files.length === 0) return;
 
     setUploading(true);
@@ -142,7 +304,10 @@ export default function ProductMediaUploader({
           "0"
         );
 
-        const fileName = `${seoBaseName}-${seoIndex}.${fileExt}`;
+        const uniqueId = crypto.randomUUID();
+
+        const fileName =
+          `${seoBaseName}-${seoIndex}-${uniqueId}.${fileExt}`;
         const filePath = `${productId}/${fileName}`;
 
         const { data: uploadData, error: uploadError } = await supabase.storage
@@ -178,6 +343,7 @@ export default function ProductMediaUploader({
       }
 
       event.target.value = "";
+      setOrderedIds(null);
       router.refresh();
     } catch (error) {
       alert(error instanceof Error ? error.message : "Erreur upload média.");
@@ -186,17 +352,56 @@ export default function ProductMediaUploader({
     }
   }
 
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = items.findIndex((item) => item.id === active.id);
+    const newIndex = items.findIndex((item) => item.id === over.id);
+
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const reorderedItems = arrayMove(items, oldIndex, newIndex);
+    const reorderedIds = reorderedItems.map((item) => item.id);
+
+    setOrderedIds(reorderedIds);
+
+    startTransition(async () => {
+      try {
+        await reorderMediaAction(reorderedIds);
+        router.refresh();
+      } catch (error) {
+        setOrderedIds(null);
+        alert(
+          error instanceof Error
+            ? error.message
+            : "Erreur réorganisation médias."
+        );
+      }
+    });
+  }
+
   return (
-    <div className={compact ? "" : "rounded-3xl border bg-white p-8"}>
-      <h2 className="text-xl font-semibold">Aperçu médias</h2>
+    <div className={compact ? "" : "rounded-3xl border bg-white p-6"}>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-semibold">Aperçu médias</h2>
 
-      <p className="mt-2 text-sm text-[#5f5a54]">
-        Ajoute, organise, supprime les médias et définis l’image cover. Les noms
-        de fichiers et textes alternatifs sont générés automatiquement pour le
-        SEO.
-      </p>
+          <p className="mt-2 text-sm leading-6 text-[#5f5a54]">
+            Ajoute, organise par glisser-déposer, supprime les médias et définis
+            l’image cover.
+          </p>
+        </div>
 
-      <label className="mt-6 flex cursor-pointer items-center justify-center gap-3 rounded-2xl border border-dashed border-gray-300 bg-[#f7f4ee] px-5 py-8 text-center transition hover:bg-white">
+        {isPending && (
+          <span className="shrink-0 rounded-full bg-black px-3 py-1 text-xs font-semibold text-white">
+            Sauvegarde...
+          </span>
+        )}
+      </div>
+
+      <label className="mt-6 flex cursor-pointer items-center justify-center gap-3 rounded-2xl border border-dashed border-gray-300 bg-[#f7f4ee] px-4 py-6 text-center transition hover:bg-white">
         <ImagePlus className="h-5 w-5" />
         <Video className="h-5 w-5" />
 
@@ -214,112 +419,30 @@ export default function ProductMediaUploader({
         />
       </label>
 
-      <div className="mt-6 grid grid-cols-2 gap-4">
-        {sortedMedia.map((item, index) => (
-          <div
-            key={item.id}
-            className="overflow-hidden rounded-2xl border bg-[#f7f4ee]"
+      {items.length > 0 && (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={items.map((item) => item.id)}
+            strategy={rectSortingStrategy}
           >
-            <div className="relative aspect-[4/3] bg-white">
-              {item.type === "image" ? (
-                <Image
-                  src={item.url}
-                  alt={item.alt || "Média produit Tempel Outdoor"}
-                  fill
-                  sizes="260px"
-                  className="object-cover"
+            <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-3">
+              {items.map((item, index) => (
+                <SortableMediaCard
+                  key={item.id}
+                  item={item}
+                  index={index}
+                  setCoverAction={setCoverAction}
+                  deleteMediaAction={deleteMediaAction}
                 />
-              ) : (
-                <video
-                  src={item.url}
-                  muted
-                  controls
-                  className="h-full w-full object-cover"
-                />
-              )}
-
-              {item.is_featured && (
-                <div className="absolute left-2 top-2 rounded-full bg-black px-3 py-1 text-[11px] font-semibold text-white">
-                  Cover
-                </div>
-              )}
+              ))}
             </div>
-
-            <div className="space-y-3 p-3">
-              <div className="flex items-center justify-between text-[11px] text-gray-500">
-                <span>Position {item.position ?? index}</span>
-                <span className="uppercase">{item.type}</span>
-              </div>
-
-              {item.alt && (
-                <p className="line-clamp-2 text-[11px] leading-4 text-black/50">
-                  Alt SEO : {item.alt}
-                </p>
-              )}
-
-              <div className="grid grid-cols-4 gap-2">
-                <form action={moveMediaAction}>
-                  <input type="hidden" name="mediaId" value={item.id} />
-                  <input type="hidden" name="direction" value="up" />
-                  <button
-                    type="submit"
-                    disabled={index === 0}
-                    className="w-full rounded-xl border bg-white p-2 disabled:opacity-40"
-                  >
-                    <ArrowUp className="mx-auto h-4 w-4" />
-                  </button>
-                </form>
-
-                <form action={moveMediaAction}>
-                  <input type="hidden" name="mediaId" value={item.id} />
-                  <input type="hidden" name="direction" value="down" />
-                  <button
-                    type="submit"
-                    disabled={index === sortedMedia.length - 1}
-                    className="w-full rounded-xl border bg-white p-2 disabled:opacity-40"
-                  >
-                    <ArrowDown className="mx-auto h-4 w-4" />
-                  </button>
-                </form>
-
-                <form action={setCoverAction}>
-                  <input type="hidden" name="mediaId" value={item.id} />
-                  <button
-                    type="submit"
-                    disabled={Boolean(item.is_featured)}
-                    className="w-full rounded-xl border bg-white p-2 disabled:opacity-40"
-                  >
-                    <Star className="mx-auto h-4 w-4" />
-                  </button>
-                </form>
-
-                <form
-                  action={deleteMediaAction}
-                  onSubmit={(event) => {
-                    if (
-                      !window.confirm(
-                        "Supprimer définitivement ce média du produit ?"
-                      )
-                    ) {
-                      event.preventDefault();
-                    }
-                  }}
-                >
-                  <input type="hidden" name="mediaId" value={item.id} />
-                  <input type="hidden" name="mediaUrl" value={item.url} />
-
-                  <button
-                    type="submit"
-                    className="w-full rounded-xl border border-red-200 bg-red-50 p-2 text-red-600"
-                  >
-                    <Trash2 className="mx-auto h-4 w-4" />
-                  </button>
-                </form>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+          </SortableContext>
+        </DndContext>
+      )}
     </div>
   );
 }

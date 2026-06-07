@@ -1,5 +1,8 @@
+// src/app/admin/realisations/page.tsx
+
+import { revalidatePath } from "next/cache";
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { LayoutDashboard, Plus, Trash2 } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
 
@@ -17,6 +20,28 @@ type Realisation = {
 export default async function AdminRealisationsPage() {
   const supabase = await createClient();
 
+  async function deleteRealisation(formData: FormData) {
+    "use server";
+
+    const realisationId = String(formData.get("realisationId") || "");
+
+    if (!realisationId) return;
+
+    const supabase = await createClient();
+
+    const { error } = await supabase
+      .from("realisations")
+      .delete()
+      .eq("id", realisationId);
+
+    if (error) {
+      throw new Error(`Erreur suppression réalisation: ${error.message}`);
+    }
+
+    revalidatePath("/admin/realisations");
+    revalidatePath("/fr/realisations");
+  }
+
   const { data: realisations, error } = await supabase
     .from("realisations")
     .select("id, title, slug, category, city, status, is_featured, position")
@@ -32,12 +57,22 @@ export default async function AdminRealisationsPage() {
       <div className="mx-auto max-w-6xl">
         <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-center">
           <div>
+            <Link
+              href="/admin"
+              className="mb-4 inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-medium transition hover:bg-black hover:text-white"
+            >
+              <LayoutDashboard className="h-4 w-4" />
+              Dashboard
+            </Link>
+
             <p className="text-sm uppercase tracking-[0.3em] text-black/50">
               Admin
             </p>
+
             <h1 className="mt-2 text-3xl font-semibold md:text-4xl">
               Réalisations
             </h1>
+
             <p className="mt-3 max-w-2xl text-sm text-black/60">
               Ajoute ici les installations clients pour renforcer la crédibilité
               premium du site Tempel Outdoor.
@@ -62,12 +97,12 @@ export default async function AdminRealisationsPage() {
                 <th className="px-5 py-4 font-medium">Ville</th>
                 <th className="px-5 py-4 font-medium">Statut</th>
                 <th className="px-5 py-4 font-medium">Mise en avant</th>
-                <th className="px-5 py-4 text-right font-medium">Action</th>
+                <th className="px-5 py-4 text-right font-medium">Actions</th>
               </tr>
             </thead>
 
             <tbody>
-              {(realisations ?? []).map((realisation) => (
+              {(realisations ?? []).map((realisation: Realisation) => (
                 <tr
                   key={realisation.id}
                   className="border-t border-black/10 transition hover:bg-[#f7f4ee]"
@@ -83,9 +118,7 @@ export default async function AdminRealisationsPage() {
                     {realisation.category}
                   </td>
 
-                  <td className="px-5 py-4">
-                    {realisation.city || "—"}
-                  </td>
+                  <td className="px-5 py-4">{realisation.city || "—"}</td>
 
                   <td className="px-5 py-4">
                     <span className="rounded-full bg-black/5 px-3 py-1 text-xs capitalize">
@@ -97,13 +130,34 @@ export default async function AdminRealisationsPage() {
                     {realisation.is_featured ? "Oui" : "Non"}
                   </td>
 
-                  <td className="px-5 py-4 text-right">
-                    <Link
-                      href={`/admin/realisations/${realisation.id}/edit`}
-                      className="rounded-full border border-black/10 px-4 py-2 text-xs font-medium transition hover:bg-black hover:text-white"
-                    >
-                      Modifier
-                    </Link>
+                  <td className="px-5 py-4">
+                    <div className="flex items-center justify-end gap-2">
+                      <Link
+                        href={`/admin/realisations/${realisation.id}/edit`}
+                        className="rounded-full border border-black/10 px-4 py-2 text-xs font-medium transition hover:bg-black hover:text-white"
+                      >
+                        Modifier
+                      </Link>
+
+                      <form
+                        action={deleteRealisation}
+                      >
+                        <input
+                          type="hidden"
+                          name="realisationId"
+                          value={realisation.id}
+                        />
+
+                        <button
+                          type="submit"
+                          className="flex h-9 w-9 items-center justify-center rounded-full border border-red-200 bg-red-50 text-red-600 transition hover:bg-red-600 hover:text-white"
+                          title="Supprimer"
+                          aria-label={`Supprimer ${realisation.title}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </form>
+                    </div>
                   </td>
                 </tr>
               ))}
