@@ -5,7 +5,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle2, ShoppingBag } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import { useParams } from "next/navigation";
 
 type CartItem = {
@@ -27,18 +27,39 @@ type CustomerForm = {
   address: string;
   postalCode: string;
   city: string;
+  country: string;
   message: string;
+};
+
+type OrderResponse = {
+  success?: boolean;
+  orderId?: string;
+  error?: string;
 };
 
 const CART_STORAGE_KEY = "tempel_cart";
 
-function getInitialCart(): CartItem[] {
-  if (typeof window === "undefined") return [];
+function subscribeToCart(callback: () => void) {
+  window.addEventListener("tempel-cart-updated", callback);
+  window.addEventListener("storage", callback);
 
+  return () => {
+    window.removeEventListener("tempel-cart-updated", callback);
+    window.removeEventListener("storage", callback);
+  };
+}
+
+function getCartSnapshot() {
+  return window.localStorage.getItem(CART_STORAGE_KEY) || "[]";
+}
+
+function getServerCartSnapshot() {
+  return "[]";
+}
+
+function parseCart(snapshot: string): CartItem[] {
   try {
-    return JSON.parse(
-      window.localStorage.getItem(CART_STORAGE_KEY) || "[]"
-    ) as CartItem[];
+    return JSON.parse(snapshot) as CartItem[];
   } catch {
     return [];
   }
@@ -56,8 +77,18 @@ export default function CheckoutPage() {
   const params = useParams<{ locale: string }>();
   const locale = params?.locale ?? "fr";
 
-  const [cart] = useState<CartItem[]>(getInitialCart);
+  const cartSnapshot = useSyncExternalStore(
+    subscribeToCart,
+    getCartSnapshot,
+    getServerCartSnapshot
+  );
+
+  const cart = useMemo(() => parseCart(cartSnapshot), [cartSnapshot]);
+
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [orderId, setOrderId] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const [form, setForm] = useState<CustomerForm>({
     firstName: "",
@@ -67,6 +98,7 @@ export default function CheckoutPage() {
     address: "",
     postalCode: "",
     city: "",
+    country: "France",
     message: "",
   });
 
@@ -81,12 +113,56 @@ export default function CheckoutPage() {
     }));
   }
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    setIsSubmitted(true);
-    window.localStorage.removeItem(CART_STORAGE_KEY);
-    window.dispatchEvent(new Event("tempel-cart-updated"));
+    if (cart.length === 0 || isSubmitting) return;
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          customer: form,
+          items: cart,
+        }),
+      });
+
+      const responseText = await response.text();
+
+      let data: OrderResponse;
+
+      try {
+        data = JSON.parse(responseText) as OrderResponse;
+      } catch {
+        throw new Error(
+          "La route /api/orders ne renvoie pas du JSON. Vérifie que src/app/api/orders/route.ts existe bien et redémarre le serveur."
+        );
+      }
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Impossible d'envoyer la demande.");
+      }
+
+      setOrderId(data.orderId ?? null);
+      setIsSubmitted(true);
+
+      window.localStorage.removeItem(CART_STORAGE_KEY);
+      window.dispatchEvent(new Event("tempel-cart-updated"));
+    } catch (error) {
+      setSubmitError(
+        error instanceof Error
+          ? error.message
+          : "Une erreur est survenue. Veuillez réessayer."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   if (isSubmitted) {
@@ -105,10 +181,16 @@ export default function CheckoutPage() {
             Merci pour votre commande
           </h1>
 
+          {orderId ? (
+            <p className="mt-5 text-sm font-semibold text-[#9c7b4f]">
+              Référence commande : {orderId.slice(0, 8).toUpperCase()}
+            </p>
+          ) : null}
+
           <p className="mx-auto mt-5 max-w-xl text-sm leading-6 text-neutral-600">
-            Votre demande a bien été préparée. Un conseiller Tempel Outdoor vous
-            contactera rapidement pour confirmer la disponibilité, la livraison
-            et les modalités de paiement.
+            Votre demande a bien été enregistrée. Un conseiller Tempel Outdoor
+            vous contactera rapidement pour confirmer la disponibilité, la
+            livraison gratuite et les modalités de paiement.
           </p>
 
           <Link
@@ -148,8 +230,8 @@ export default function CheckoutPage() {
 
             <p className="mt-4 max-w-2xl text-sm leading-6 text-neutral-600">
               Renseignez vos coordonnées. Tempel Outdoor vous recontactera pour
-              valider les détails de livraison, l’installation éventuelle et le
-              paiement.
+              valider les détails de livraison gratuite, l’installation
+              éventuelle et le paiement.
             </p>
 
             <div className="mt-10 grid gap-5 md:grid-cols-2">
@@ -231,6 +313,18 @@ export default function CheckoutPage() {
               </div>
 
               <div className="md:col-span-2">
+                <label className="text-sm font-semibold">Pays *</label>
+                <input
+                  required
+                  value={form.country}
+                  onChange={(event) =>
+                    updateField("country", event.target.value)
+                  }
+                  className="mt-2 w-full rounded-2xl border border-black/10 bg-[#f7f4ee] px-4 py-4 outline-none transition focus:border-black"
+                />
+              </div>
+
+              <div className="md:col-span-2">
                 <label className="text-sm font-semibold">
                   Message ou précision
                 </label>
@@ -246,17 +340,27 @@ export default function CheckoutPage() {
               </div>
             </div>
 
+            {submitError ? (
+              <div className="mt-6 rounded-2xl bg-red-50 px-5 py-4 text-sm font-medium text-red-700">
+                {submitError}
+              </div>
+            ) : null}
+
             <button
               type="submit"
-              disabled={cart.length === 0}
+              disabled={cart.length === 0 || isSubmitting}
               className="mt-8 inline-flex w-full items-center justify-center rounded-full bg-black px-7 py-4 text-sm font-semibold uppercase tracking-[0.18em] text-white transition hover:bg-[#2b241f] disabled:cursor-not-allowed disabled:bg-neutral-300"
             >
-              Envoyer ma demande
+              {isSubmitting ? "Envoi en cours..." : "Envoyer ma demande"}
             </button>
           </form>
 
           <aside className="h-fit rounded-[2rem] bg-white p-7 shadow-sm">
             <h2 className="text-2xl font-semibold">Résumé du panier</h2>
+
+            <p className="mt-2 text-sm font-medium text-emerald-600">
+              Livraison gratuite
+            </p>
 
             {cart.length === 0 ? (
               <div className="mt-8 rounded-3xl bg-[#f7f4ee] p-6 text-center">
@@ -334,17 +438,17 @@ export default function CheckoutPage() {
                     <span>{formatPrice(subtotal)}</span>
                   </div>
 
-                <div className="mt-4 flex justify-between text-sm text-neutral-600">
+                  <div className="mt-4 flex justify-between text-sm text-neutral-600">
                     <span>Livraison</span>
                     <span className="font-medium text-emerald-600">
-                        Gratuite
+                      Gratuite
                     </span>
-                </div>
+                  </div>
 
-                <div className="mt-6 flex justify-between text-lg font-semibold">
+                  <div className="mt-6 flex justify-between text-lg font-semibold">
                     <span>Total</span>
                     <span>{formatPrice(subtotal)}</span>
-                </div>
+                  </div>
                 </div>
               </>
             )}
