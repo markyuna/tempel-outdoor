@@ -2,11 +2,12 @@
 
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2, ShoppingBag } from "lucide-react";
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { ArrowLeft, CheckCircle2, ShoppingBag, UserCheck } from "lucide-react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { useParams } from "next/navigation";
+
+import { createClient } from "@/lib/supabase/client";
 
 type CartItem = {
   id: string;
@@ -29,6 +30,21 @@ type CustomerForm = {
   city: string;
   country: string;
   message: string;
+};
+
+type Profile = {
+  first_name: string | null;
+  last_name: string | null;
+  phone: string | null;
+};
+
+type UserAddress = {
+  first_name: string | null;
+  last_name: string | null;
+  address_line_1: string | null;
+  postal_code: string | null;
+  city: string | null;
+  country: string | null;
 };
 
 type OrderResponse = {
@@ -89,6 +105,8 @@ export default function CheckoutPage() {
   const [orderId, setOrderId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isLoadingSession, setIsLoadingSession] = useState(true);
+  const [connectedEmail, setConnectedEmail] = useState<string | null>(null);
 
   const [form, setForm] = useState<CustomerForm>({
     firstName: "",
@@ -101,6 +119,56 @@ export default function CheckoutPage() {
     country: "France",
     message: "",
   });
+
+  useEffect(() => {
+    const supabase = createClient();
+
+    async function loadUserData() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        setIsLoadingSession(false);
+        return;
+      }
+
+      setConnectedEmail(user.email ?? null);
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("first_name, last_name, phone")
+        .eq("id", user.id)
+        .maybeSingle<Profile>();
+
+      const { data: address } = await supabase
+        .from("user_addresses")
+        .select(
+          "first_name, last_name, address_line_1, postal_code, city, country"
+        )
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle<UserAddress>();
+
+      setForm((current) => ({
+        ...current,
+        email: user.email ?? current.email,
+        firstName:
+          profile?.first_name ?? address?.first_name ?? current.firstName,
+        lastName: profile?.last_name ?? address?.last_name ?? current.lastName,
+        phone: profile?.phone ?? current.phone,
+        address: address?.address_line_1 ?? current.address,
+        postalCode: address?.postal_code ?? current.postalCode,
+        city: address?.city ?? current.city,
+        country: address?.country ?? current.country,
+      }));
+
+      setIsLoadingSession(false);
+    }
+
+    loadUserData();
+  }, []);
 
   const subtotal = useMemo(() => {
     return cart.reduce((total, item) => total + item.price * item.quantity, 0);
@@ -133,17 +201,7 @@ export default function CheckoutPage() {
         }),
       });
 
-      const responseText = await response.text();
-
-      let data: OrderResponse;
-
-      try {
-        data = JSON.parse(responseText) as OrderResponse;
-      } catch {
-        throw new Error(
-          "La route /api/orders ne renvoie pas du JSON. Vérifie que src/app/api/orders/route.ts existe bien et redémarre le serveur."
-        );
-      }
+      const data = (await response.json()) as OrderResponse;
 
       if (!response.ok || !data.success) {
         throw new Error(data.error || "Impossible d'envoyer la demande.");
@@ -188,16 +246,15 @@ export default function CheckoutPage() {
           ) : null}
 
           <p className="mx-auto mt-5 max-w-xl text-sm leading-6 text-neutral-600">
-            Votre demande a bien été enregistrée. Un conseiller Tempel Outdoor
-            vous contactera rapidement pour confirmer la disponibilité, la
-            livraison gratuite et les modalités de paiement.
+            Votre demande a bien été enregistrée. Vous pourrez la retrouver dans
+            votre espace client.
           </p>
 
           <Link
-            href={`/${locale}`}
+            href={`/${locale}/mon-compte`}
             className="mt-8 inline-flex rounded-full bg-black px-7 py-4 text-sm font-semibold uppercase tracking-[0.18em] text-white transition hover:bg-[#2b241f]"
           >
-            Retour à l&apos;accueil
+            Voir mon compte
           </Link>
         </section>
       </main>
@@ -228,11 +285,33 @@ export default function CheckoutPage() {
               Informations de contact
             </h1>
 
-            <p className="mt-4 max-w-2xl text-sm leading-6 text-neutral-600">
-              Renseignez vos coordonnées. Tempel Outdoor vous recontactera pour
-              valider les détails de livraison gratuite, l’installation
-              éventuelle et le paiement.
-            </p>
+            {connectedEmail ? (
+              <div className="mt-6 flex gap-4 rounded-3xl border border-emerald-100 bg-emerald-50 p-5 text-emerald-900">
+                <UserCheck className="mt-0.5 h-5 w-5 shrink-0" />
+                <div>
+                  <p className="font-semibold">Vous êtes connecté</p>
+                  <p className="mt-1 text-sm">
+                    Cette commande sera associée à votre compte :{" "}
+                    <span className="font-semibold">{connectedEmail}</span>
+                  </p>
+                </div>
+              </div>
+            ) : (
+              !isLoadingSession && (
+                <div className="mt-6 rounded-3xl border border-[#eadfca] bg-[#fbfaf7] p-5">
+                  <p className="text-sm text-neutral-600">
+                    Déjà client ?{" "}
+                    <Link
+                      href={`/${locale}/auth/login?redirectTo=/${locale}/checkout`}
+                      className="font-semibold text-black underline"
+                    >
+                      Connectez-vous
+                    </Link>{" "}
+                    pour associer cette commande à votre compte.
+                  </p>
+                </div>
+              )
+            )}
 
             <div className="mt-10 grid gap-5 md:grid-cols-2">
               <div>
@@ -265,8 +344,9 @@ export default function CheckoutPage() {
                   required
                   type="email"
                   value={form.email}
+                  readOnly={Boolean(connectedEmail)}
                   onChange={(event) => updateField("email", event.target.value)}
-                  className="mt-2 w-full rounded-2xl border border-black/10 bg-[#f7f4ee] px-4 py-4 outline-none transition focus:border-black"
+                  className="mt-2 w-full rounded-2xl border border-black/10 bg-[#f7f4ee] px-4 py-4 outline-none transition focus:border-black read-only:cursor-not-allowed read-only:opacity-70"
                 />
               </div>
 
@@ -357,7 +437,6 @@ export default function CheckoutPage() {
 
           <aside className="h-fit rounded-[2rem] bg-white p-7 shadow-sm">
             <h2 className="text-2xl font-semibold">Résumé du panier</h2>
-
             <p className="mt-2 text-sm font-medium text-emerald-600">
               Livraison gratuite
             </p>
@@ -368,89 +447,14 @@ export default function CheckoutPage() {
                 <p className="mt-4 text-sm text-neutral-600">
                   Votre panier est vide.
                 </p>
-
-                <Link
-                  href={`/${locale}`}
-                  className="mt-5 inline-flex rounded-full bg-black px-5 py-3 text-xs font-semibold uppercase tracking-[0.16em] text-white"
-                >
-                  Voir les produits
-                </Link>
               </div>
             ) : (
-              <>
-                <div className="mt-6 space-y-5">
-                  {cart.map((item) => (
-                    <article
-                      key={item.id}
-                      className="flex gap-4 border-b border-black/10 pb-5 last:border-b-0"
-                    >
-                      <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-[#f7f4ee]">
-                        {item.image ? (
-                          <Image
-                            src={item.image}
-                            alt={item.name}
-                            fill
-                            className="object-cover"
-                            sizes="80px"
-                          />
-                        ) : (
-                          <div className="flex h-full items-center justify-center">
-                            <ShoppingBag className="h-6 w-6 text-neutral-300" />
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-                        <h3 className="line-clamp-2 text-sm font-semibold">
-                          {item.name}
-                        </h3>
-
-                        {item.options ? (
-                          <div className="mt-2 space-y-1">
-                            {Object.entries(item.options).map(
-                              ([label, value]) => (
-                                <p
-                                  key={`${item.id}-${label}`}
-                                  className="text-xs text-neutral-500"
-                                >
-                                  {label} : {value}
-                                </p>
-                              )
-                            )}
-                          </div>
-                        ) : null}
-
-                        <p className="mt-2 text-xs text-neutral-500">
-                          Quantité : {item.quantity}
-                        </p>
-
-                        <p className="mt-1 text-sm font-semibold">
-                          {formatPrice(item.price * item.quantity)}
-                        </p>
-                      </div>
-                    </article>
-                  ))}
+              <div className="mt-6 border-t border-black/10 pt-6">
+                <div className="flex justify-between text-lg font-semibold">
+                  <span>Total</span>
+                  <span>{formatPrice(subtotal)}</span>
                 </div>
-
-                <div className="mt-6 border-t border-black/10 pt-6">
-                  <div className="flex justify-between text-sm text-neutral-600">
-                    <span>Sous-total</span>
-                    <span>{formatPrice(subtotal)}</span>
-                  </div>
-
-                  <div className="mt-4 flex justify-between text-sm text-neutral-600">
-                    <span>Livraison</span>
-                    <span className="font-medium text-emerald-600">
-                      Gratuite
-                    </span>
-                  </div>
-
-                  <div className="mt-6 flex justify-between text-lg font-semibold">
-                    <span>Total</span>
-                    <span>{formatPrice(subtotal)}</span>
-                  </div>
-                </div>
-              </>
+              </div>
             )}
           </aside>
         </div>
