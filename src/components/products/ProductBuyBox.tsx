@@ -1,3 +1,5 @@
+// src/components/products/ProductBuyBox.tsx
+
 "use client";
 
 import {
@@ -18,8 +20,22 @@ type ProductOption = {
   position: number;
 };
 
-type Props = {
+type CartItem = {
+  id: string;
+  productId: string;
   name: string;
+  slug: string;
+  price: number;
+  image?: string | null;
+  quantity: number;
+  options?: Record<string, string>;
+};
+
+type Props = {
+  id: string;
+  name: string;
+  slug: string;
+  image?: string | null;
   categoryLabel: string;
   price: number;
   compareAtPrice: number | null;
@@ -28,6 +44,8 @@ type Props = {
   deliveryTime: string | null;
   options: ProductOption[];
 };
+
+const CART_STORAGE_KEY = "tempel_cart";
 
 function formatPrice(price: number) {
   return new Intl.NumberFormat("fr-FR", {
@@ -47,7 +65,10 @@ function parseOptionValue(value: string) {
 }
 
 export default function ProductBuyBox({
+  id,
   name,
+  slug,
+  image,
   categoryLabel,
   price,
   compareAtPrice,
@@ -56,6 +77,8 @@ export default function ProductBuyBox({
   deliveryTime,
   options,
 }: Props) {
+  const [added, setAdded] = useState(false);
+
   const sortedOptions = useMemo(
     () => [...options].sort((a, b) => (a.position ?? 0) - (b.position ?? 0)),
     [options]
@@ -79,150 +102,216 @@ export default function ProductBuyBox({
     return price;
   }, [price, selectedOptions]);
 
+  const selectedOptionLabels = useMemo(() => {
+    return sortedOptions.reduce<Record<string, string>>((acc, option) => {
+      const selectedValue = selectedOptions[option.id];
+
+      if (!selectedValue) return acc;
+
+      acc[option.name] = parseOptionValue(selectedValue).label;
+      return acc;
+    }, {});
+  }, [selectedOptions, sortedOptions]);
+
   const hasDiscount = compareAtPrice && compareAtPrice > selectedPrice;
 
+  function handleAddToCart() {
+    if (stock <= 0 || typeof window === "undefined") return;
+
+    const cartItemId = `${id}-${JSON.stringify(selectedOptionLabels)}`;
+
+    const currentCart = JSON.parse(
+      window.localStorage.getItem(CART_STORAGE_KEY) || "[]"
+    ) as CartItem[];
+
+    const existingItem = currentCart.find((item) => item.id === cartItemId);
+
+    const updatedCart = existingItem
+      ? currentCart.map((item) =>
+          item.id === cartItemId
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        )
+      : [
+          ...currentCart,
+          {
+            id: cartItemId,
+            productId: id,
+            name,
+            slug,
+            price: selectedPrice,
+            image: image ?? null,
+            quantity: 1,
+            options: selectedOptionLabels,
+          },
+        ];
+
+    window.localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(updatedCart));
+    window.dispatchEvent(new Event("tempel-cart-updated"));
+
+    setAdded(true);
+
+    window.setTimeout(() => {
+      setAdded(false);
+    }, 1800);
+  }
+
   return (
-    <aside className="rounded-[2rem] border border-black/10 bg-white p-6 shadow-sm lg:sticky lg:top-24">
-      <div className="flex flex-wrap items-center gap-3">
-        <span className="rounded-full bg-[#d7b86e] px-4 py-2 text-xs font-bold uppercase tracking-[0.18em]">
-          {categoryLabel}
-        </span>
+    <>
+      <aside className="rounded-[2rem] border border-black/10 bg-white p-6 shadow-sm lg:sticky lg:top-24">
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="rounded-full bg-[#d7b86e] px-4 py-2 text-xs font-bold uppercase tracking-[0.18em]">
+            {categoryLabel}
+          </span>
 
-        <span
-          className={`rounded-full px-4 py-2 text-xs font-bold ${
-            stock > 0
-              ? "bg-emerald-50 text-emerald-700"
-              : "bg-red-50 text-red-700"
-          }`}
-        >
-          {stock > 0 ? "En stock" : "Rupture"}
-        </span>
-      </div>
-
-      <h1 className="mt-4 text-3xl font-semibold leading-tight tracking-tight md:text-4xl">
-        {name}
-      </h1>
-
-      {shortDescription ? (
-        <p className="mt-4 text-base leading-7 text-neutral-600">
-          {shortDescription}
-        </p>
-      ) : null}
-
-      <div className="mt-8 flex items-end gap-4">
-        <p className="text-3xl font-bold">{formatPrice(selectedPrice)}</p>
-
-        {hasDiscount ? (
-          <p className="pb-1 text-lg text-neutral-400 line-through">
-            {formatPrice(Number(compareAtPrice))}
-          </p>
-        ) : null}
-      </div>
-
-      {sortedOptions.length > 0 ? (
-        <div className="mt-8 space-y-6">
-          {sortedOptions.map((option) => (
-            <div key={option.id}>
-              <div className="mb-3 flex items-center gap-3">
-                <p className="text-sm font-semibold">{option.name}</p>
-
-                {option.required ? (
-                  <span className="rounded-full bg-black px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white">
-                    Obligatoire
-                  </span>
-                ) : null}
-              </div>
-
-              <div className="grid gap-3">
-                {option.values.map((value) => {
-                  const parsed = parseOptionValue(value);
-                  const isSelected = selectedOptions[option.id] === value;
-
-                  return (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() =>
-                        setSelectedOptions((current) => ({
-                          ...current,
-                          [option.id]: value,
-                        }))
-                      }
-                      className={`flex items-center justify-between rounded-2xl border px-4 py-3 text-left transition ${
-                        isSelected
-                          ? "border-black bg-black text-white"
-                          : "border-black/10 bg-[#f7f4ee] text-black hover:border-black/30"
-                      }`}
-                    >
-                      <span className="text-sm font-medium">
-                        {parsed.label}
-                      </span>
-
-                      {parsed.price ? (
-                        <span className="text-sm font-bold">
-                          {formatPrice(parsed.price)}
-                        </span>
-                      ) : null}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : null}
-
-      <div className="mt-8 grid gap-3 text-sm text-neutral-700">
-        <div className="flex items-center gap-3">
-          <PackageCheck className="h-5 w-5 text-[#c76b2a]" />
-          Stock disponible :
-          <span className="font-semibold text-black">{stock}</span>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <Truck className="h-5 w-5 text-[#c76b2a]" />
-          Livraison :
-          <span className="font-semibold text-black">
-            {deliveryTime || "Sur devis"}
+          <span
+            className={`rounded-full px-4 py-2 text-xs font-bold ${
+              stock > 0
+                ? "bg-emerald-50 text-emerald-700"
+                : "bg-red-50 text-red-700"
+            }`}
+          >
+            {stock > 0 ? "En stock" : "Rupture"}
           </span>
         </div>
-      </div>
 
-      <div className="mt-8 grid gap-3 sm:grid-cols-[1fr_auto]">
-        <button
-          disabled={stock <= 0}
-          className="inline-flex items-center justify-center gap-2 rounded-full bg-black px-8 py-4 text-sm font-semibold text-white transition hover:bg-[#2b241f] disabled:cursor-not-allowed disabled:bg-neutral-300"
-        >
-          <ShoppingBag className="h-5 w-5" />
-          Ajouter au panier
-        </button>
+        <h1 className="mt-4 text-3xl font-semibold leading-tight tracking-tight md:text-4xl">
+          {name}
+        </h1>
 
-        <button className="inline-flex h-14 w-14 items-center justify-center rounded-full border border-black/10 transition hover:bg-[#f7f4ee]">
-          <Heart className="h-5 w-5" />
-        </button>
-      </div>
+        {shortDescription ? (
+          <p className="mt-4 text-base leading-7 text-neutral-600">
+            {shortDescription}
+          </p>
+        ) : null}
 
-      <div className="mt-8 grid gap-4 border-t border-black/10 pt-7">
-        <div className="flex gap-3">
-          <ShieldCheck className="mt-1 h-5 w-5 text-[#c76b2a]" />
-          <div>
-            <p className="font-semibold">Paiement sécurisé</p>
-            <p className="text-sm text-neutral-600">
-              Commande protégée et expérience d’achat fiable.
+        <div className="mt-8 flex items-end gap-4">
+          <p className="text-3xl font-bold">{formatPrice(selectedPrice)}</p>
+
+          {hasDiscount ? (
+            <p className="pb-1 text-lg text-neutral-400 line-through">
+              {formatPrice(Number(compareAtPrice))}
             </p>
+          ) : null}
+        </div>
+
+        {sortedOptions.length > 0 ? (
+          <div className="mt-8 space-y-6">
+            {sortedOptions.map((option) => (
+              <div key={option.id}>
+                <div className="mb-3 flex items-center gap-3">
+                  <p className="text-sm font-semibold">{option.name}</p>
+
+                  {option.required ? (
+                    <span className="rounded-full bg-black px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white">
+                      Obligatoire
+                    </span>
+                  ) : null}
+                </div>
+
+                <div className="grid gap-3">
+                  {option.values.map((value) => {
+                    const parsed = parseOptionValue(value);
+                    const isSelected = selectedOptions[option.id] === value;
+
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() =>
+                          setSelectedOptions((current) => ({
+                            ...current,
+                            [option.id]: value,
+                          }))
+                        }
+                        className={`flex items-center justify-between rounded-2xl border px-4 py-3 text-left transition ${
+                          isSelected
+                            ? "border-black bg-black text-white"
+                            : "border-black/10 bg-[#f7f4ee] text-black hover:border-black/30"
+                        }`}
+                      >
+                        <span className="text-sm font-medium">
+                          {parsed.label}
+                        </span>
+
+                        {parsed.price ? (
+                          <span className="text-sm font-bold">
+                            {formatPrice(parsed.price)}
+                          </span>
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : null}
+
+        <div className="mt-8 grid gap-3 text-sm text-neutral-700">
+          <div className="flex items-center gap-3">
+            <PackageCheck className="h-5 w-5 text-[#c76b2a]" />
+            Stock disponible :
+            <span className="font-semibold text-black">{stock}</span>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Truck className="h-5 w-5 text-[#c76b2a]" />
+            Livraison :
+            <span className="font-semibold text-black">
+              {deliveryTime || "Sur devis"}
+            </span>
           </div>
         </div>
 
-        <div className="flex gap-3">
-          <BadgeCheck className="mt-1 h-5 w-5 text-[#c76b2a]" />
-          <div>
-            <p className="font-semibold">Sélection premium</p>
-            <p className="text-sm text-neutral-600">
-              Produits choisis pour le confort, le design et la durée.
-            </p>
+        <div className="mt-8 grid gap-3 sm:grid-cols-[1fr_auto]">
+          <button
+            type="button"
+            onClick={handleAddToCart}
+            disabled={stock <= 0}
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-black px-8 py-4 text-sm font-semibold text-white transition hover:bg-[#2b241f] disabled:cursor-not-allowed disabled:bg-neutral-300"
+          >
+            <ShoppingBag className="h-5 w-5" />
+            {added ? "Ajouté au panier" : "Ajouter au panier"}
+          </button>
+
+          <button
+            type="button"
+            className="inline-flex h-14 w-14 items-center justify-center rounded-full border border-black/10 transition hover:bg-[#f7f4ee]"
+          >
+            <Heart className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="mt-8 grid gap-4 border-t border-black/10 pt-7">
+          <div className="flex gap-3">
+            <ShieldCheck className="mt-1 h-5 w-5 text-[#c76b2a]" />
+            <div>
+              <p className="font-semibold">Paiement sécurisé</p>
+              <p className="text-sm text-neutral-600">
+                Commande protégée et expérience d’achat fiable.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <BadgeCheck className="mt-1 h-5 w-5 text-[#c76b2a]" />
+            <div>
+              <p className="font-semibold">Sélection premium</p>
+              <p className="text-sm text-neutral-600">
+                Produits choisis pour le confort, le design et la durée.
+              </p>
+            </div>
           </div>
         </div>
-      </div>
-    </aside>
+      </aside>
+
+      {added ? (
+        <div className="fixed bottom-6 right-6 z-[999] flex items-center gap-3 rounded-2xl bg-black px-5 py-4 text-sm font-semibold text-white shadow-2xl">
+          <ShoppingBag className="h-5 w-5 text-[#d7b86e]" />
+          Produit ajouté au panier
+        </div>
+      ) : null}
+    </>
   );
 }

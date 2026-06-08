@@ -12,9 +12,15 @@ import {
   User,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+
+const CART_STORAGE_KEY = "tempel_cart";
+
+type CartItem = {
+  quantity: number;
+};
 
 const navItems = [
   { label: "Accueil", href: "/fr" },
@@ -37,8 +43,39 @@ const navItems = [
   { label: "Contact", href: "/fr/contact" },
 ];
 
+function getCartCount() {
+  if (typeof window === "undefined") return 0;
+
+  try {
+    const cart = JSON.parse(
+      window.localStorage.getItem(CART_STORAGE_KEY) || "[]"
+    ) as CartItem[];
+
+    return cart.reduce((total, item) => total + item.quantity, 0);
+  } catch {
+    return 0;
+  }
+}
+
 export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
+
+  useEffect(() => {
+    function updateCartCount() {
+      setCartCount(getCartCount());
+    }
+
+    updateCartCount();
+
+    window.addEventListener("tempel-cart-updated", updateCartCount);
+    window.addEventListener("storage", updateCartCount);
+
+    return () => {
+      window.removeEventListener("tempel-cart-updated", updateCartCount);
+      window.removeEventListener("storage", updateCartCount);
+    };
+  }, []);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-black text-white">
@@ -101,30 +138,58 @@ export default function Navbar() {
           <Button variant="ghost" size="icon">
             <Search className="h-5 w-5" />
           </Button>
+
           <Button variant="ghost" size="icon">
             <Heart className="h-5 w-5" />
           </Button>
+
           <Button variant="ghost" size="icon">
             <User className="h-5 w-5" />
           </Button>
-          <Button variant="ghost" size="icon">
+
+          <Link
+            href="/fr/cart"
+            aria-label="Voir le panier"
+            className="relative inline-flex h-10 w-10 items-center justify-center rounded-md transition hover:bg-white/10"
+          >
             <ShoppingBag className="h-5 w-5" />
-          </Button>
+
+            {cartCount > 0 ? (
+              <span className="absolute right-0 top-0 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#d7b86e] px-1.5 text-[11px] font-bold text-black">
+                {cartCount}
+              </span>
+            ) : null}
+          </Link>
         </div>
 
-        <Button
-          variant="ghost"
-          size="icon"
-          className="lg:hidden"
-          onClick={() => setIsMobileMenuOpen((current) => !current)}
-          aria-label={isMobileMenuOpen ? "Fermer le menu" : "Ouvrir le menu"}
-        >
-          {isMobileMenuOpen ? (
-            <X className="h-6 w-6" />
-          ) : (
-            <Menu className="h-6 w-6" />
-          )}
-        </Button>
+        <div className="flex items-center gap-2 lg:hidden">
+          <Link
+            href="/fr/cart"
+            className="relative inline-flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-white/10"
+            aria-label="Voir le panier"
+          >
+            <ShoppingBag className="h-5 w-5" />
+
+            {cartCount > 0 ? (
+              <span className="absolute right-0 top-0 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#d7b86e] px-1.5 text-[11px] font-bold text-black">
+                {cartCount}
+              </span>
+            ) : null}
+          </Link>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsMobileMenuOpen((current) => !current)}
+            aria-label={isMobileMenuOpen ? "Fermer le menu" : "Ouvrir le menu"}
+          >
+            {isMobileMenuOpen ? (
+              <X className="h-6 w-6" />
+            ) : (
+              <Menu className="h-6 w-6" />
+            )}
+          </Button>
+        </div>
       </div>
 
       {isMobileMenuOpen && (

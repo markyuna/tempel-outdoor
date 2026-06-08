@@ -195,6 +195,14 @@ function sortOptions(options: ProductOption[]) {
   return [...options].sort((a, b) => a.position - b.position);
 }
 
+function getFeaturedImage(media: ProductMedia[]) {
+  return (
+    media.find((item) => item.type === "image" && item.is_featured)?.url ??
+    media.find((item) => item.type === "image")?.url ??
+    null
+  );
+}
+
 export default async function ProductPage({ params }: Props) {
   const { locale, slug } = await params;
   const product = await getProduct(slug);
@@ -206,6 +214,7 @@ export default async function ProductPage({ params }: Props) {
   const media = sortMedia(product.product_media ?? []);
   const variants = sortVariants(product.product_variants ?? []);
   const options = sortOptions(product.product_options ?? []);
+  const featuredImage = getFeaturedImage(media);
 
   const storyVideoUrl =
     CATEGORY_VIDEOS[product.category] ?? "/videos/tempel-outdoor.mp4";
@@ -230,7 +239,10 @@ export default async function ProductPage({ params }: Props) {
             />
 
             <ProductBuyBox
+              id={product.id}
               name={product.name}
+              slug={product.slug}
+              image={featuredImage}
               categoryLabel={getCategoryLabel(product.category)}
               price={Number(product.price)}
               compareAtPrice={product.compare_at_price}
