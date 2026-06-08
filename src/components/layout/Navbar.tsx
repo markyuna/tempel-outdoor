@@ -15,6 +15,7 @@ import {
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { createClient } from "@/lib/supabase/client";
 
 const CART_STORAGE_KEY = "tempel_cart";
 
@@ -60,6 +61,7 @@ function getCartCount() {
 export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [cartCount, setCartCount] = useState(0);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
     function updateCartCount() {
@@ -76,6 +78,32 @@ export default function Navbar() {
       window.removeEventListener("storage", updateCartCount);
     };
   }, []);
+
+  useEffect(() => {
+    const supabase = createClient();
+
+    async function getUser() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      setIsAuthenticated(Boolean(user));
+    }
+
+    getUser();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthenticated(Boolean(session?.user));
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const accountHref = isAuthenticated ? "/fr/mon-compte" : "/fr/auth/login";
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-black text-white">
@@ -135,17 +163,25 @@ export default function Navbar() {
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" aria-label="Rechercher">
             <Search className="h-5 w-5" />
           </Button>
 
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" aria-label="Favoris">
             <Heart className="h-5 w-5" />
           </Button>
 
-          <Button variant="ghost" size="icon">
+          <Link
+            href={accountHref}
+            aria-label={isAuthenticated ? "Mon compte" : "Connexion"}
+            className="relative inline-flex h-10 w-10 items-center justify-center rounded-md transition hover:bg-white/10"
+          >
             <User className="h-5 w-5" />
-          </Button>
+
+            {isAuthenticated ? (
+              <span className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-[#d7b86e]" />
+            ) : null}
+          </Link>
 
           <Link
             href="/fr/cart"
@@ -163,6 +199,18 @@ export default function Navbar() {
         </div>
 
         <div className="flex items-center gap-2 lg:hidden">
+          <Link
+            href={accountHref}
+            className="relative inline-flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-white/10"
+            aria-label={isAuthenticated ? "Mon compte" : "Connexion"}
+          >
+            <User className="h-5 w-5" />
+
+            {isAuthenticated ? (
+              <span className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-[#d7b86e]" />
+            ) : null}
+          </Link>
+
           <Link
             href="/fr/cart"
             className="relative inline-flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-white/10"
@@ -228,6 +276,15 @@ export default function Navbar() {
                 )}
               </div>
             ))}
+
+            <Link
+              href={accountHref}
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center gap-3 rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium uppercase tracking-wide text-white/80 transition hover:border-[#d7b86e] hover:text-[#d7b86e]"
+            >
+              <User className="h-5 w-5" />
+              {isAuthenticated ? "Mon compte" : "Connexion"}
+            </Link>
           </nav>
         </div>
       )}

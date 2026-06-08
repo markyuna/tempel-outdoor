@@ -3,6 +3,7 @@
 import { NextResponse } from "next/server";
 
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 
 type CartItem = {
   id: string;
@@ -41,6 +42,12 @@ export async function POST(request: Request) {
       );
     }
 
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
     const subtotal = payload.items.reduce((total, item) => {
       return total + Number(item.price) * Number(item.quantity);
     }, 0);
@@ -51,6 +58,7 @@ export async function POST(request: Request) {
     const { data: order, error: orderError } = await supabaseAdmin
       .from("orders")
       .insert({
+        user_id: user?.id ?? null,
         customer_first_name: payload.customer.firstName,
         customer_last_name: payload.customer.lastName,
         customer_email: payload.customer.email,
@@ -58,7 +66,7 @@ export async function POST(request: Request) {
         customer_address: payload.customer.address || null,
         customer_postal_code: payload.customer.postalCode || null,
         customer_city: payload.customer.city || null,
-        customer_country: payload.customer.country || null,
+        customer_country: payload.customer.country || "France",
         customer_message: payload.customer.message || null,
         subtotal,
         delivery_price: deliveryPrice,
