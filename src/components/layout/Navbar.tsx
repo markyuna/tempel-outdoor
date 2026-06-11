@@ -2,6 +2,7 @@
 
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import {
   ChevronDown,
@@ -116,11 +117,19 @@ export default function Navbar() {
       </div>
 
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6">
-        <Link href="/fr" className="text-xl font-semibold tracking-[0.3em]">
-          TEMPEL
-          <span className="ml-2 text-xs tracking-[0.4em] text-[#d7b86e]">
-            OUTDOOR
-          </span>
+        <Link
+          href="/fr"
+          aria-label="Tempel Outdoor - Accueil"
+          className="relative flex shrink-0 items-center"
+        >
+          <Image
+            src="/images/logo.png"
+            alt="Tempel Outdoor"
+            width={240}
+            height={80}
+            priority
+            className="h-auto w-[170px] object-contain sm:w-[190px] xl:w-[220px]"
+          />
         </Link>
 
         <nav className="hidden items-center gap-8 lg:flex">
