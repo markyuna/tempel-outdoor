@@ -1,12 +1,12 @@
-// src/middleware.ts
+// src/proxy.ts
 
 import { createServerClient } from "@supabase/ssr";
 import createMiddleware from "next-intl/middleware";
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 
 import { routing } from "@/i18n/routing";
 
-const intlMiddleware = createMiddleware(routing);
+const intlProxy = createMiddleware(routing);
 
 const protectedUserRoutes = ["/mon-compte"];
 const authRoutes = ["/auth/login", "/auth/register"];
@@ -19,6 +19,7 @@ function getLocaleAndPath(pathname: string) {
   const hasLocale = locales.includes(possibleLocale);
 
   const locale = hasLocale ? possibleLocale : routing.defaultLocale;
+
   const pathWithoutLocale = hasLocale
     ? `/${segments.slice(1).join("/")}`
     : pathname;
@@ -29,57 +30,62 @@ function getLocaleAndPath(pathname: string) {
   };
 }
 
-export async function middleware(request: NextRequest) {
+function redirectLocalizedAdmin(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  const localizedAdminMatch = pathname.match(/^\/(fr|en|es)\/admin(\/.*)?$/);
+
+  if (!localizedAdminMatch) {
+    return null;
+  }
+
+  const adminPath = pathname.replace(/^\/(fr|en|es)\/admin/, "/admin");
+
+  return NextResponse.redirect(new URL(adminPath, request.url));
+}
+
+export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
   if (pathname.startsWith("/admin")) {
     return NextResponse.next();
   }
 
-  if (pathname.startsWith("/fr/admin")) {
-    return NextResponse.redirect(
-      new URL(pathname.replace("/fr/admin", "/admin"), request.url)
-    );
+  const adminRedirect = redirectLocalizedAdmin(request);
+
+  if (adminRedirect) {
+    return adminRedirect;
   }
 
-  if (pathname.startsWith("/en/admin")) {
-    return NextResponse.redirect(
-      new URL(pathname.replace("/en/admin", "/admin"), request.url)
-    );
+  let response = intlProxy(request);
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return response;
   }
 
-  if (pathname.startsWith("/es/admin")) {
-    return NextResponse.redirect(
-      new URL(pathname.replace("/es/admin", "/admin"), request.url)
-    );
-  }
-
-  let response = intlMiddleware(request);
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => {
-            request.cookies.set(name, value);
-          });
-
-          response = NextResponse.next({
-            request,
-          });
-
-          cookiesToSet.forEach(({ name, value, options }) => {
-            response.cookies.set(name, value, options);
-          });
-        },
+  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
       },
-    }
-  );
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value }) => {
+          request.cookies.set(name, value);
+        });
+
+        response = NextResponse.next({
+          request,
+        });
+
+        cookiesToSet.forEach(({ name, value, options }) => {
+          response.cookies.set(name, value, options);
+        });
+      },
+    },
+  });
 
   const {
     data: { user },
