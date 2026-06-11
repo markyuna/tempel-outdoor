@@ -1,6 +1,7 @@
 // src/app/[locale]/products/[slug]/page.tsx
 
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
@@ -76,8 +77,6 @@ type Product = {
 };
 
 const CATEGORY_VIDEOS: Record<string, string> = {
-  spa: "/videos/spa.mp4",
-  sauna: "/videos/sauna.mp4",
   billard: "/videos/billard-tempel.mp4",
   "baby-foot": "/videos/fabrication.mp4",
   fitness: "/videos/fitness.mp4",
@@ -90,6 +89,9 @@ const CATEGORY_LABELS: Record<string, string> = {
   billard: "Billard",
   fitness: "Fitness",
 };
+
+const SAUNA_ATELIER_IMAGE = "/images/atelier-sauna.webp";
+const SPA_ATELIER_IMAGE = "/images/atelier-spa.webp";
 
 async function getProduct(slug: string): Promise<Product | null> {
   const supabase = await createClient();
@@ -203,6 +205,96 @@ function getFeaturedImage(media: ProductMedia[]) {
   );
 }
 
+function ProductAtelierCard({
+  image,
+  alt,
+  title,
+  description,
+  tags,
+  badge,
+}: {
+  image: string;
+  alt: string;
+  title: string;
+  description: string;
+  tags: string[];
+  badge: string;
+}) {
+  return (
+    <article className="grid min-h-[420px] overflow-hidden rounded-[2rem] border border-black/10 bg-black shadow-[0_24px_70px_rgba(0,0,0,0.18)] md:grid-cols-2">
+      <div className="flex flex-col justify-between p-8 text-white md:p-10">
+        <div>
+          <span className="text-xs font-semibold uppercase tracking-[0.45em] text-[#d6bd7f]">
+            Tempel Outdoor
+          </span>
+
+          <h2 className="mt-8 max-w-sm text-4xl font-semibold leading-tight md:text-5xl">
+            {title}
+          </h2>
+
+          <p className="mt-7 max-w-sm text-base leading-8 text-white/75">
+            {description}
+          </p>
+        </div>
+
+        <div className="mt-8 flex flex-wrap gap-3">
+          {tags.map((item) => (
+            <span
+              key={item}
+              className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs font-semibold text-white"
+            >
+              {item}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <div className="relative min-h-[320px] md:min-h-full">
+        <Image
+          src={image}
+          alt={alt}
+          fill
+          sizes="(min-width: 1024px) 30vw, 100vw"
+          className="object-cover"
+          priority={false}
+        />
+
+        <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent" />
+
+        <div className="absolute bottom-5 left-5 rounded-full border border-white/20 bg-black/45 px-4 py-2 text-xs font-semibold text-white backdrop-blur">
+          {badge}
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function ProductSaunaAtelierImage() {
+  return (
+    <ProductAtelierCard
+      image={SAUNA_ATELIER_IMAGE}
+      alt="Atelier de fabrication de sauna en bois Tempel Outdoor"
+      title="L'excellence du savoir-faire bois."
+      description="Nos saunas sont pensés pour offrir une expérience extérieure haut de gamme, avec une attention particulière portée au bois, aux finitions et au confort."
+      tags={["Atelier bois", "Finitions premium", "Sauna extérieur"]}
+      badge="Savoir-faire sauna"
+    />
+  );
+}
+
+function ProductSpaAtelierImage() {
+  return (
+    <ProductAtelierCard
+      image={SPA_ATELIER_IMAGE}
+      alt="Atelier de préparation d’un spa Tempel Outdoor"
+      title="Le soin du détail, jusque dans chaque jet."
+      description="Chaque spa est préparé avec précision pour offrir une expérience de relaxation haut de gamme, entre confort, performance et finitions premium."
+      tags={["Atelier spa", "Jets hydromassage", "Finitions premium"]}
+      badge="Savoir-faire spa"
+    />
+  );
+}
+
 export default async function ProductPage({ params }: Props) {
   const { locale, slug } = await params;
   const product = await getProduct(slug);
@@ -215,6 +307,9 @@ export default async function ProductPage({ params }: Props) {
   const variants = sortVariants(product.product_variants ?? []);
   const options = sortOptions(product.product_options ?? []);
   const featuredImage = getFeaturedImage(media);
+
+  const isSpa = product.category === "spa";
+  const isSauna = product.category === "sauna";
 
   const storyVideoUrl =
     CATEGORY_VIDEOS[product.category] ?? "/videos/tempel-outdoor.mp4";
@@ -254,11 +349,17 @@ export default async function ProductPage({ params }: Props) {
           </div>
 
           <section className="mt-20 grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-stretch">
-            <ProductStoryVideo
-              videoUrl={storyVideoUrl}
-              title="L'excellence du savoir-faire français."
-              description="Chaque produit est sélectionné pour offrir une expérience extérieure haut de gamme, alliant design, robustesse et confort."
-            />
+            {isSauna ? (
+              <ProductSaunaAtelierImage />
+            ) : isSpa ? (
+              <ProductSpaAtelierImage />
+            ) : (
+              <ProductStoryVideo
+                videoUrl={storyVideoUrl}
+                title="L'excellence du savoir-faire français."
+                description="Chaque produit est sélectionné pour offrir une expérience extérieure haut de gamme, alliant design, robustesse et confort."
+              />
+            )}
 
             <ProductSpecs sections={product.product_spec_sections} />
           </section>
