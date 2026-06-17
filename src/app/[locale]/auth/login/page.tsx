@@ -21,9 +21,16 @@ export default async function LoginPage({
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
 
   const redirectTo = resolvedSearchParams?.redirectTo;
+
   const registerHref = redirectTo
     ? `/${locale}/auth/register?redirectTo=${encodeURIComponent(redirectTo)}`
     : `/${locale}/auth/register`;
+
+  const forgotPasswordHref = redirectTo
+    ? `/${locale}/auth/forgot-password?redirectTo=${encodeURIComponent(
+        redirectTo
+      )}`
+    : `/${locale}/auth/forgot-password`;
 
   return (
     <main className="min-h-screen bg-[#f7f4ee] px-6 py-20">
@@ -45,10 +52,17 @@ export default async function LoginPage({
 
         <LoginForm />
 
+        <div className="mt-5 text-center">
+          <Link
+            href={forgotPasswordHref}
+            className="text-sm font-medium text-[#181512] underline underline-offset-4 transition hover:text-black"
+          >
+            Mot de passe oublié ?
+          </Link>
+        </div>
+
         <div className="mt-8 rounded-3xl border border-black/10 bg-white/60 p-6 text-center shadow-sm">
-          <p className="text-sm text-neutral-600">
-            Pas encore de compte ?
-          </p>
+          <p className="text-sm text-neutral-600">Pas encore de compte ?</p>
 
           <Link
             href={registerHref}
