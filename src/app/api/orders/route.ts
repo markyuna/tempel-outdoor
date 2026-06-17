@@ -24,10 +24,24 @@ type CustomerPayload = {
   lastName: string;
   email: string;
   phone: string;
+
+  billingAddress?: string;
+  billingPostalCode?: string;
+  billingCity?: string;
+  billingCountry?: string;
+
+  shippingSameAsBilling?: boolean;
+  shippingAddress?: string;
+  shippingPostalCode?: string;
+  shippingCity?: string;
+  shippingCountry?: string;
+
+  // Compatibilité avec l’ancien checkout
   address?: string;
   postalCode?: string;
   city?: string;
   country?: string;
+
   message?: string;
 };
 
@@ -135,15 +149,59 @@ export async function POST(request: Request) {
       data: { user },
     } = await supabase.auth.getUser();
 
+    const billingAddress = normalizeNullableString(
+      payload.customer.billingAddress ?? payload.customer.address
+    );
+
+    const billingPostalCode = normalizeNullableString(
+      payload.customer.billingPostalCode ?? payload.customer.postalCode
+    );
+
+    const billingCity = normalizeNullableString(
+      payload.customer.billingCity ?? payload.customer.city
+    );
+
+    const billingCountry =
+      normalizeString(
+        payload.customer.billingCountry ?? payload.customer.country
+      ) || "France";
+
+    const shippingSameAsBilling =
+      payload.customer.shippingSameAsBilling !== false;
+
+    const shippingAddress = shippingSameAsBilling
+      ? billingAddress
+      : normalizeNullableString(payload.customer.shippingAddress);
+
+    const shippingPostalCode = shippingSameAsBilling
+      ? billingPostalCode
+      : normalizeNullableString(payload.customer.shippingPostalCode);
+
+    const shippingCity = shippingSameAsBilling
+      ? billingCity
+      : normalizeNullableString(payload.customer.shippingCity);
+
+    const shippingCountry = shippingSameAsBilling
+      ? billingCountry
+      : normalizeString(payload.customer.shippingCountry) || "France";
+
     const customer = {
       firstName: normalizeString(payload.customer.firstName),
       lastName: normalizeString(payload.customer.lastName),
       email: normalizeEmail(payload.customer.email),
       phone: normalizeString(payload.customer.phone),
-      address: normalizeNullableString(payload.customer.address),
-      postalCode: normalizeNullableString(payload.customer.postalCode),
-      city: normalizeNullableString(payload.customer.city),
-      country: normalizeString(payload.customer.country) || "France",
+
+      billingAddress,
+      billingPostalCode,
+      billingCity,
+      billingCountry,
+
+      shippingSameAsBilling,
+      shippingAddress,
+      shippingPostalCode,
+      shippingCity,
+      shippingCountry,
+
       message: normalizeNullableString(payload.customer.message),
     };
 
@@ -158,15 +216,33 @@ export async function POST(request: Request) {
       .from("orders")
       .insert({
         user_id: user?.id ?? null,
+
         customer_first_name: customer.firstName,
         customer_last_name: customer.lastName,
         customer_email: customer.email,
         customer_phone: customer.phone,
-        customer_address: customer.address,
-        customer_postal_code: customer.postalCode,
-        customer_city: customer.city,
-        customer_country: customer.country,
+
+        // Champs historiques utilisés par l’admin actuel
+        customer_address: customer.billingAddress,
+        customer_postal_code: customer.billingPostalCode,
+        customer_city: customer.billingCity,
+        customer_country: customer.billingCountry,
+
+        // Nouveaux champs facturation
+        billing_address: customer.billingAddress,
+        billing_postal_code: customer.billingPostalCode,
+        billing_city: customer.billingCity,
+        billing_country: customer.billingCountry,
+
+        // Nouveaux champs livraison
+        shipping_same_as_billing: customer.shippingSameAsBilling,
+        shipping_address: customer.shippingAddress,
+        shipping_postal_code: customer.shippingPostalCode,
+        shipping_city: customer.shippingCity,
+        shipping_country: customer.shippingCountry,
+
         customer_message: customer.message,
+
         subtotal,
         delivery_price: deliveryPrice,
         total,
@@ -212,23 +288,25 @@ export async function POST(request: Request) {
     }
 
     if (user?.id) {
-      const { error: profileError } = await supabaseAdmin.from("profiles").upsert(
-        {
-          user_id: user.id,
-          first_name: customer.firstName,
-          last_name: customer.lastName,
-          email: customer.email || user.email || null,
-          phone: customer.phone,
-          address: customer.address,
-          postal_code: customer.postalCode,
-          city: customer.city,
-          country: customer.country,
-          updated_at: new Date().toISOString(),
-        },
-        {
-          onConflict: "user_id",
-        }
-      );
+      const { error: profileError } = await supabaseAdmin
+        .from("profiles")
+        .upsert(
+          {
+            user_id: user.id,
+            first_name: customer.firstName,
+            last_name: customer.lastName,
+            email: customer.email || user.email || null,
+            phone: customer.phone,
+            address: customer.billingAddress,
+            postal_code: customer.billingPostalCode,
+            city: customer.billingCity,
+            country: customer.billingCountry,
+            updated_at: new Date().toISOString(),
+          },
+          {
+            onConflict: "user_id",
+          }
+        );
 
       if (profileError) {
         console.error("Erreur sauvegarde profil client:", profileError);

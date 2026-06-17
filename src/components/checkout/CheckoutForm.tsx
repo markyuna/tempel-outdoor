@@ -30,10 +30,18 @@ type CustomerForm = {
   lastName: string;
   email: string;
   phone: string;
-  address: string;
-  postalCode: string;
-  city: string;
-  country: string;
+
+  billingAddress: string;
+  billingPostalCode: string;
+  billingCity: string;
+  billingCountry: string;
+
+  shippingSameAsBilling: boolean;
+  shippingAddress: string;
+  shippingPostalCode: string;
+  shippingCity: string;
+  shippingCountry: string;
+
   message: string;
 };
 
@@ -48,7 +56,7 @@ type Profile = {
   country: string | null;
 } | null;
 
-type Props = {
+type CheckoutFormProps = {
   locale: string;
   userId?: string | null;
   userEmail?: string;
@@ -69,10 +77,18 @@ const emptyForm: CustomerForm = {
   lastName: "",
   email: "",
   phone: "",
-  address: "",
-  postalCode: "",
-  city: "",
-  country: "France",
+
+  billingAddress: "",
+  billingPostalCode: "",
+  billingCity: "",
+  billingCountry: "France",
+
+  shippingSameAsBilling: true,
+  shippingAddress: "",
+  shippingPostalCode: "",
+  shippingCity: "",
+  shippingCountry: "France",
+
   message: "",
 };
 
@@ -135,16 +151,27 @@ function formatPrice(price: number) {
 }
 
 function getInitialForm(profile?: Profile, userEmail?: string): CustomerForm {
+  const billingCountry = profile?.country || "France";
+
   return {
     ...emptyForm,
     firstName: profile?.first_name ?? "",
     lastName: profile?.last_name ?? "",
     email: profile?.email ?? userEmail ?? "",
     phone: profile?.phone ?? "",
-    address: profile?.address ?? "",
-    postalCode: profile?.postal_code ?? "",
-    city: profile?.city ?? "",
-    country: profile?.country ?? "France",
+
+    billingAddress: profile?.address ?? "",
+    billingPostalCode: profile?.postal_code ?? "",
+    billingCity: profile?.city ?? "",
+    billingCountry,
+
+    shippingSameAsBilling: true,
+    shippingAddress: profile?.address ?? "",
+    shippingPostalCode: profile?.postal_code ?? "",
+    shippingCity: profile?.city ?? "",
+    shippingCountry: billingCountry,
+
+    message: "",
   };
 }
 
@@ -153,7 +180,7 @@ export default function CheckoutForm({
   userId,
   userEmail,
   profile,
-}: Props) {
+}: CheckoutFormProps) {
   const router = useRouter();
 
   const cartSnapshot = useSyncExternalStore(
@@ -179,7 +206,7 @@ export default function CheckoutForm({
     }, 0);
   }, [cart]);
 
-  function updateField(field: keyof CustomerForm, value: string) {
+  function updateField(field: keyof CustomerForm, value: string | boolean) {
     setForm((current) => ({
       ...current,
       [field]: value,
@@ -196,6 +223,22 @@ export default function CheckoutForm({
     setIsSubmitting(true);
     setSubmitError(null);
 
+    const customerPayload = {
+      ...form,
+      shippingAddress: form.shippingSameAsBilling
+        ? form.billingAddress
+        : form.shippingAddress,
+      shippingPostalCode: form.shippingSameAsBilling
+        ? form.billingPostalCode
+        : form.shippingPostalCode,
+      shippingCity: form.shippingSameAsBilling
+        ? form.billingCity
+        : form.shippingCity,
+      shippingCountry: form.shippingSameAsBilling
+        ? form.billingCountry
+        : form.shippingCountry,
+    };
+
     try {
       const response = await fetch("/api/orders", {
         method: "POST",
@@ -203,7 +246,7 @@ export default function CheckoutForm({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          customer: form,
+          customer: customerPayload,
           items: cart,
         }),
       });
@@ -385,67 +428,183 @@ export default function CheckoutForm({
                 className="mt-2 w-full rounded-2xl border border-black/10 bg-[#f7f4ee] px-4 py-4 outline-none transition focus:border-black"
               />
             </div>
+          </div>
 
-            <div className="md:col-span-2">
-              <label className="text-sm font-semibold">Adresse</label>
+          <div className="mt-12 border-t border-black/10 pt-10">
+            <h2 className="text-2xl font-semibold">
+              Adresse de facturation
+            </h2>
 
-              <input
-                value={form.address}
-                onChange={(event) => updateField("address", event.target.value)}
-                autoComplete="street-address"
-                className="mt-2 w-full rounded-2xl border border-black/10 bg-[#f7f4ee] px-4 py-4 outline-none transition focus:border-black"
-              />
+            <p className="mt-2 text-sm text-neutral-600">
+              Cette adresse sera utilisée pour vos informations de commande et
+              votre devis.
+            </p>
+
+            <div className="mt-6 grid gap-5 md:grid-cols-2">
+              <div className="md:col-span-2">
+                <label className="text-sm font-semibold">Adresse</label>
+
+                <input
+                  value={form.billingAddress}
+                  onChange={(event) =>
+                    updateField("billingAddress", event.target.value)
+                  }
+                  autoComplete="billing street-address"
+                  className="mt-2 w-full rounded-2xl border border-black/10 bg-[#f7f4ee] px-4 py-4 outline-none transition focus:border-black"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-semibold">Code postal</label>
+
+                <input
+                  value={form.billingPostalCode}
+                  onChange={(event) =>
+                    updateField("billingPostalCode", event.target.value)
+                  }
+                  autoComplete="billing postal-code"
+                  className="mt-2 w-full rounded-2xl border border-black/10 bg-[#f7f4ee] px-4 py-4 outline-none transition focus:border-black"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-semibold">Ville</label>
+
+                <input
+                  value={form.billingCity}
+                  onChange={(event) =>
+                    updateField("billingCity", event.target.value)
+                  }
+                  autoComplete="billing address-level2"
+                  className="mt-2 w-full rounded-2xl border border-black/10 bg-[#f7f4ee] px-4 py-4 outline-none transition focus:border-black"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="text-sm font-semibold">Pays *</label>
+
+                <input
+                  required
+                  value={form.billingCountry}
+                  onChange={(event) =>
+                    updateField("billingCountry", event.target.value)
+                  }
+                  autoComplete="billing country-name"
+                  className="mt-2 w-full rounded-2xl border border-black/10 bg-[#f7f4ee] px-4 py-4 outline-none transition focus:border-black"
+                />
+              </div>
             </div>
+          </div>
 
-            <div>
-              <label className="text-sm font-semibold">Code postal</label>
-
+          <div className="mt-10 rounded-3xl border border-black/10 bg-[#fbfaf7] p-5">
+            <label className="flex cursor-pointer items-start gap-3">
               <input
-                value={form.postalCode}
+                type="checkbox"
+                checked={form.shippingSameAsBilling}
                 onChange={(event) =>
-                  updateField("postalCode", event.target.value)
+                  updateField("shippingSameAsBilling", event.target.checked)
                 }
-                autoComplete="postal-code"
-                className="mt-2 w-full rounded-2xl border border-black/10 bg-[#f7f4ee] px-4 py-4 outline-none transition focus:border-black"
+                className="mt-1 h-4 w-4 accent-black"
               />
+
+              <span>
+                <span className="block text-sm font-semibold text-[#181512]">
+                  L’adresse de livraison est identique à l’adresse de
+                  facturation
+                </span>
+
+                <span className="mt-1 block text-sm text-neutral-600">
+                  Décochez cette option si le spa, sauna ou équipement doit être
+                  livré à une autre adresse.
+                </span>
+              </span>
+            </label>
+          </div>
+
+          {!form.shippingSameAsBilling ? (
+            <div className="mt-10 border-t border-black/10 pt-10">
+              <h2 className="text-2xl font-semibold">
+                Adresse de livraison
+              </h2>
+
+              <p className="mt-2 text-sm text-neutral-600">
+                Indiquez l’adresse exacte où le produit devra être livré.
+              </p>
+
+              <div className="mt-6 grid gap-5 md:grid-cols-2">
+                <div className="md:col-span-2">
+                  <label className="text-sm font-semibold">Adresse *</label>
+
+                  <input
+                    required={!form.shippingSameAsBilling}
+                    value={form.shippingAddress}
+                    onChange={(event) =>
+                      updateField("shippingAddress", event.target.value)
+                    }
+                    autoComplete="shipping street-address"
+                    className="mt-2 w-full rounded-2xl border border-black/10 bg-[#f7f4ee] px-4 py-4 outline-none transition focus:border-black"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-semibold">
+                    Code postal *
+                  </label>
+
+                  <input
+                    required={!form.shippingSameAsBilling}
+                    value={form.shippingPostalCode}
+                    onChange={(event) =>
+                      updateField("shippingPostalCode", event.target.value)
+                    }
+                    autoComplete="shipping postal-code"
+                    className="mt-2 w-full rounded-2xl border border-black/10 bg-[#f7f4ee] px-4 py-4 outline-none transition focus:border-black"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-semibold">Ville *</label>
+
+                  <input
+                    required={!form.shippingSameAsBilling}
+                    value={form.shippingCity}
+                    onChange={(event) =>
+                      updateField("shippingCity", event.target.value)
+                    }
+                    autoComplete="shipping address-level2"
+                    className="mt-2 w-full rounded-2xl border border-black/10 bg-[#f7f4ee] px-4 py-4 outline-none transition focus:border-black"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="text-sm font-semibold">Pays *</label>
+
+                  <input
+                    required={!form.shippingSameAsBilling}
+                    value={form.shippingCountry}
+                    onChange={(event) =>
+                      updateField("shippingCountry", event.target.value)
+                    }
+                    autoComplete="shipping country-name"
+                    className="mt-2 w-full rounded-2xl border border-black/10 bg-[#f7f4ee] px-4 py-4 outline-none transition focus:border-black"
+                  />
+                </div>
+              </div>
             </div>
+          ) : null}
 
-            <div>
-              <label className="text-sm font-semibold">Ville</label>
+          <div className="mt-10">
+            <label className="text-sm font-semibold">
+              Message ou précision
+            </label>
 
-              <input
-                value={form.city}
-                onChange={(event) => updateField("city", event.target.value)}
-                autoComplete="address-level2"
-                className="mt-2 w-full rounded-2xl border border-black/10 bg-[#f7f4ee] px-4 py-4 outline-none transition focus:border-black"
-              />
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="text-sm font-semibold">Pays *</label>
-
-              <input
-                required
-                value={form.country}
-                onChange={(event) => updateField("country", event.target.value)}
-                autoComplete="country-name"
-                className="mt-2 w-full rounded-2xl border border-black/10 bg-[#f7f4ee] px-4 py-4 outline-none transition focus:border-black"
-              />
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="text-sm font-semibold">
-                Message ou précision
-              </label>
-
-              <textarea
-                rows={5}
-                value={form.message}
-                onChange={(event) => updateField("message", event.target.value)}
-                placeholder="Exemple : accès jardin, besoin d'installation, date souhaitée..."
-                className="mt-2 w-full resize-none rounded-2xl border border-black/10 bg-[#f7f4ee] px-4 py-4 outline-none transition focus:border-black"
-              />
-            </div>
+            <textarea
+              rows={5}
+              value={form.message}
+              onChange={(event) => updateField("message", event.target.value)}
+              placeholder="Exemple : accès jardin, besoin d'installation, date souhaitée..."
+              className="mt-2 w-full resize-none rounded-2xl border border-black/10 bg-[#f7f4ee] px-4 py-4 outline-none transition focus:border-black"
+            />
           </div>
 
           {submitError ? (
