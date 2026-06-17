@@ -110,7 +110,7 @@ export default function Navbar() {
     <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-black text-white">
       <div className="hidden border-b border-white/10 bg-[#d7b86e] px-6 py-2 text-sm text-black md:block">
         <div className="mx-auto flex max-w-7xl items-center justify-between">
-          <span>Livraison France & Europe</span>
+          <span>Livraison France</span>
           <span>Paiement 2x 3x 4x avec Alma</span>
           <span>Conseiller expert : contact@tempel-outdoor.fr</span>
         </div>
@@ -128,7 +128,7 @@ export default function Navbar() {
             width={240}
             height={80}
             priority
-            className="h-auto w-[170px] object-contain sm:w-[190px] xl:w-[220px]"
+            className="h-auto w-42.5 object-contain sm:w-[190px] xl:w-[220px]"
           />
         </Link>
 

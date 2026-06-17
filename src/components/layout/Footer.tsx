@@ -53,7 +53,7 @@ export default function Footer() {
 
             <div className="mt-8 flex flex-wrap gap-3">
               <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-white/70">
-                Livraison France & Europe
+                Livraison en France uniquement
               </span>
               <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-white/70">
                 Paiement sécurisé
@@ -84,7 +84,7 @@ export default function Footer() {
 
               <p className="flex items-center gap-3">
                 <MapPin className="h-4 w-4 text-[#d7b86e]" />
-                France & Europe
+                France
               </p>
 
               <p className="flex items-center gap-3">
