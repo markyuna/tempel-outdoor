@@ -1,3 +1,5 @@
+// src/app/api/orders/route.ts
+
 import { NextResponse } from "next/server";
 
 import { supabaseAdmin } from "@/lib/supabase/admin";
@@ -34,12 +36,26 @@ type OrderPayload = {
   items: CartItem[];
 };
 
+function normalizeString(value?: string | null) {
+  return value?.trim() || "";
+}
+
+function normalizeNullableString(value?: string | null) {
+  const normalizedValue = normalizeString(value);
+
+  return normalizedValue || null;
+}
+
+function normalizeEmail(value?: string | null) {
+  return normalizeString(value).toLowerCase();
+}
+
 function validateCustomer(customer: CustomerPayload) {
   return Boolean(
-    customer?.firstName &&
-      customer?.lastName &&
-      customer?.email &&
-      customer?.phone
+    normalizeString(customer?.firstName) &&
+      normalizeString(customer?.lastName) &&
+      normalizeEmail(customer?.email) &&
+      normalizeString(customer?.phone)
   );
 }
 
@@ -89,13 +105,17 @@ export async function POST(request: Request) {
     }
 
     const validItems = payload.items
-      .filter((item) => item.name && item.slug)
+      .filter((item) => {
+        return normalizeString(item.name) && normalizeString(item.slug);
+      })
       .map((item) => {
         const unitPrice = normalizePrice(item.price);
         const quantity = normalizeQuantity(item.quantity);
 
         return {
           ...item,
+          name: normalizeString(item.name),
+          slug: normalizeString(item.slug),
           price: unitPrice,
           quantity,
           total: unitPrice * quantity,
@@ -115,14 +135,24 @@ export async function POST(request: Request) {
       data: { user },
     } = await supabase.auth.getUser();
 
+    const customer = {
+      firstName: normalizeString(payload.customer.firstName),
+      lastName: normalizeString(payload.customer.lastName),
+      email: normalizeEmail(payload.customer.email),
+      phone: normalizeString(payload.customer.phone),
+      address: normalizeNullableString(payload.customer.address),
+      postalCode: normalizeNullableString(payload.customer.postalCode),
+      city: normalizeNullableString(payload.customer.city),
+      country: normalizeString(payload.customer.country) || "France",
+      message: normalizeNullableString(payload.customer.message),
+    };
+
     const subtotal = validItems.reduce((total, item) => {
       return total + item.total;
     }, 0);
 
     const deliveryPrice = 0;
     const total = subtotal + deliveryPrice;
-
-    const customer = payload.customer;
 
     const { data: order, error: orderError } = await supabaseAdmin
       .from("orders")
@@ -132,11 +162,11 @@ export async function POST(request: Request) {
         customer_last_name: customer.lastName,
         customer_email: customer.email,
         customer_phone: customer.phone,
-        customer_address: customer.address || null,
-        customer_postal_code: customer.postalCode || null,
-        customer_city: customer.city || null,
-        customer_country: customer.country || "France",
-        customer_message: customer.message || null,
+        customer_address: customer.address,
+        customer_postal_code: customer.postalCode,
+        customer_city: customer.city,
+        customer_country: customer.country,
+        customer_message: customer.message,
         subtotal,
         delivery_price: deliveryPrice,
         total,
@@ -187,12 +217,12 @@ export async function POST(request: Request) {
           user_id: user.id,
           first_name: customer.firstName,
           last_name: customer.lastName,
-          email: customer.email,
+          email: customer.email || user.email || null,
           phone: customer.phone,
-          address: customer.address || null,
-          postal_code: customer.postalCode || null,
-          city: customer.city || null,
-          country: customer.country || "France",
+          address: customer.address,
+          postal_code: customer.postalCode,
+          city: customer.city,
+          country: customer.country,
           updated_at: new Date().toISOString(),
         },
         {

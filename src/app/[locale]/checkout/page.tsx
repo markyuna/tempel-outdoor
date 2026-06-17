@@ -3,13 +3,24 @@
 import CheckoutForm from "@/components/checkout/CheckoutForm";
 import { createClient } from "@/lib/supabase/server";
 
-type Props = {
+type CheckoutPageProps = {
   params: Promise<{
     locale: string;
   }>;
 };
 
-export default async function CheckoutPage({ params }: Props) {
+type CheckoutProfile = {
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  postal_code: string | null;
+  city: string | null;
+  country: string | null;
+};
+
+export default async function CheckoutPage({ params }: CheckoutPageProps) {
   const { locale } = await params;
 
   const supabase = await createClient();
@@ -18,7 +29,7 @@ export default async function CheckoutPage({ params }: Props) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  let profile = null;
+  let profile: CheckoutProfile | null = null;
 
   if (user?.id) {
     const { data, error } = await supabase

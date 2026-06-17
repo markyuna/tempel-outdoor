@@ -11,7 +11,7 @@ import {
   ShoppingBag,
   UserCheck,
 } from "lucide-react";
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 
 type CartItem = {
   id: string;
@@ -173,20 +173,6 @@ export default function CheckoutForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  useEffect(() => {
-    setForm((current) => ({
-      ...current,
-      firstName: current.firstName || profile?.first_name || "",
-      lastName: current.lastName || profile?.last_name || "",
-      email: current.email || profile?.email || userEmail || "",
-      phone: current.phone || profile?.phone || "",
-      address: current.address || profile?.address || "",
-      postalCode: current.postalCode || profile?.postal_code || "",
-      city: current.city || profile?.city || "",
-      country: current.country || profile?.country || "France",
-    }));
-  }, [profile, userEmail]);
-
   const subtotal = useMemo(() => {
     return cart.reduce((total, item) => {
       return total + Number(item.price || 0) * Number(item.quantity || 1);
@@ -317,8 +303,10 @@ export default function CheckoutForm({
           {userId ? (
             <div className="mt-6 flex gap-4 rounded-3xl border border-emerald-100 bg-emerald-50 p-5 text-emerald-900">
               <UserCheck className="mt-0.5 h-5 w-5 shrink-0" />
+
               <div>
                 <p className="font-semibold">Vous êtes connecté</p>
+
                 <p className="mt-1 text-sm">
                   Cette commande sera associée à votre compte :{" "}
                   <span className="font-semibold">
@@ -345,6 +333,7 @@ export default function CheckoutForm({
           <div className="mt-10 grid gap-5 md:grid-cols-2">
             <div>
               <label className="text-sm font-semibold">Prénom *</label>
+
               <input
                 required
                 value={form.firstName}
@@ -358,6 +347,7 @@ export default function CheckoutForm({
 
             <div>
               <label className="text-sm font-semibold">Nom *</label>
+
               <input
                 required
                 value={form.lastName}
@@ -371,6 +361,7 @@ export default function CheckoutForm({
 
             <div>
               <label className="text-sm font-semibold">Email *</label>
+
               <input
                 required
                 type="email"
@@ -384,6 +375,7 @@ export default function CheckoutForm({
 
             <div>
               <label className="text-sm font-semibold">Téléphone *</label>
+
               <input
                 required
                 type="tel"
@@ -396,6 +388,7 @@ export default function CheckoutForm({
 
             <div className="md:col-span-2">
               <label className="text-sm font-semibold">Adresse</label>
+
               <input
                 value={form.address}
                 onChange={(event) => updateField("address", event.target.value)}
@@ -406,6 +399,7 @@ export default function CheckoutForm({
 
             <div>
               <label className="text-sm font-semibold">Code postal</label>
+
               <input
                 value={form.postalCode}
                 onChange={(event) =>
@@ -418,6 +412,7 @@ export default function CheckoutForm({
 
             <div>
               <label className="text-sm font-semibold">Ville</label>
+
               <input
                 value={form.city}
                 onChange={(event) => updateField("city", event.target.value)}
@@ -428,6 +423,7 @@ export default function CheckoutForm({
 
             <div className="md:col-span-2">
               <label className="text-sm font-semibold">Pays *</label>
+
               <input
                 required
                 value={form.country}
@@ -441,6 +437,7 @@ export default function CheckoutForm({
               <label className="text-sm font-semibold">
                 Message ou précision
               </label>
+
               <textarea
                 rows={5}
                 value={form.message}
@@ -506,6 +503,7 @@ export default function CheckoutForm({
                     <div className="flex justify-between gap-4">
                       <div>
                         <p className="font-medium">{item.name}</p>
+
                         <p className="mt-1 text-sm text-neutral-500">
                           Quantité : {item.quantity}
                         </p>
