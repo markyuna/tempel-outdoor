@@ -7,6 +7,7 @@ import HeroSection from "@/components/home/HeroSection";
 import UniversSection from "@/components/home/UniversSection";
 import TrustSection from "@/components/home/TrustSection";
 import ProduitsPhares from "@/components/home/ProduitsPhares";
+import GoogleReviewsSection from "@/components/home/GoogleReviewsSection";
 
 export default function HomePage() {
   return (
@@ -49,6 +50,8 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      <GoogleReviewsSection />
     </main>
   );
 }

@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useTransition } from "react";
+import React, { useState, useTransition } from "react";
 import { Heart } from "lucide-react";
 
 type FavoriteButtonProps = {
@@ -76,9 +76,7 @@ export default function FavoriteButton({
         onClick={handleToggleFavorite}
         disabled={isPending}
         className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-black/10 bg-white px-5 py-3 text-sm font-semibold text-[#181512] shadow-sm transition hover:bg-[#f7f4ee] disabled:cursor-not-allowed disabled:opacity-60"
-        aria-label={
-          isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"
-        }
+        aria-label={isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
       >
         <Heart
           className={`h-4 w-4 transition ${
