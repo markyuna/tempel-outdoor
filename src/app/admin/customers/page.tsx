@@ -1,7 +1,7 @@
 // src/app/admin/customers/page.tsx
 
 import Link from "next/link";
-import { ArrowLeft, Mail, Phone, UserRound } from "lucide-react";
+import { ArrowLeft, Eye, Mail, Phone, UserRound } from "lucide-react";
 
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
@@ -10,6 +10,7 @@ export const revalidate = 0;
 
 type Customer = {
   id: string;
+  user_id: string | null;
   first_name: string | null;
   last_name: string | null;
   email: string | null;
@@ -45,6 +46,7 @@ export default async function AdminCustomersPage() {
     .select(
       `
       id,
+      user_id,
       first_name,
       last_name,
       email,
@@ -73,7 +75,7 @@ export default async function AdminCustomersPage() {
           className="inline-flex items-center gap-2 text-sm font-semibold text-neutral-600 transition hover:text-black"
         >
           <ArrowLeft className="h-4 w-4" />
-          Retour dashboard
+          Retour au dashboard
         </Link>
 
         <div className="mt-8 flex flex-col justify-between gap-4 md:flex-row md:items-end">
@@ -117,7 +119,7 @@ export default async function AdminCustomersPage() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[1050px] text-left">
+              <table className="w-full min-w-[1120px] text-left">
                 <thead className="bg-[#181512] text-white">
                   <tr>
                     <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.18em]">
@@ -139,15 +141,16 @@ export default async function AdminCustomersPage() {
                     <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.18em]">
                       Créé le
                     </th>
+
+                    <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-[0.18em]">
+                      Action
+                    </th>
                   </tr>
                 </thead>
 
                 <tbody className="divide-y divide-black/10">
                   {customers.map((customer) => {
-                    const postalCity = [
-                      customer.postal_code,
-                      customer.city,
-                    ]
+                    const postalCity = [customer.postal_code, customer.city]
                       .filter(Boolean)
                       .join(" ");
 
@@ -190,7 +193,9 @@ export default async function AdminCustomersPage() {
 
                         <td className="px-6 py-5">
                           <div className="max-w-[260px] rounded-2xl bg-[#f7f4ee] p-4 text-sm leading-6 text-neutral-600">
-                            <p>{customer.address || "Adresse non renseignée"}</p>
+                            <p>
+                              {customer.address || "Adresse non renseignée"}
+                            </p>
                             <p>{postalCity || "—"}</p>
                             <p>{customer.country || "—"}</p>
                           </div>
@@ -204,6 +209,16 @@ export default async function AdminCustomersPage() {
 
                         <td className="px-6 py-5 text-sm text-neutral-500">
                           {formatDate(customer.created_at)}
+                        </td>
+
+                        <td className="px-6 py-5 text-right">
+                          <Link
+                            href={`/admin/customers/${customer.id}`}
+                            className="inline-flex items-center gap-2 rounded-full bg-black px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#2b241f]"
+                          >
+                            <Eye className="h-4 w-4" />
+                            Voir
+                          </Link>
                         </td>
                       </tr>
                     );
