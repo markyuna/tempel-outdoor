@@ -2,8 +2,16 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, Download, ExternalLink, PackageCheck } from "lucide-react";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import {
+  ArrowLeft,
+  Download,
+  ExternalLink,
+  PackageCheck,
+} from "lucide-react";
 
+import DeleteOrderButton from "@/components/admin/orders/DeleteOrderButton";
 import GenerateDevisButton from "@/components/admin/orders/GenerateDevisButton";
 import OrderStatusSelect from "@/components/admin/orders/OrderStatusSelect";
 import { supabaseAdmin } from "@/lib/supabase/admin";
@@ -25,6 +33,35 @@ type OrderItem = {
   options: Record<string, string> | null;
 };
 
+type OrderAddressData = {
+  customer_first_name?: string | null;
+  customer_last_name?: string | null;
+  customer_email?: string | null;
+  customer_phone?: string | null;
+  customer_address?: string | null;
+  customer_postal_code?: string | null;
+  customer_city?: string | null;
+  customer_country?: string | null;
+
+  billing_first_name?: string | null;
+  billing_last_name?: string | null;
+  billing_email?: string | null;
+  billing_phone?: string | null;
+  billing_address?: string | null;
+  billing_postal_code?: string | null;
+  billing_city?: string | null;
+  billing_country?: string | null;
+
+  shipping_first_name?: string | null;
+  shipping_last_name?: string | null;
+  shipping_email?: string | null;
+  shipping_phone?: string | null;
+  shipping_address?: string | null;
+  shipping_postal_code?: string | null;
+  shipping_city?: string | null;
+  shipping_country?: string | null;
+};
+
 function formatPrice(price: number) {
   return new Intl.NumberFormat("fr-FR", {
     style: "currency",
@@ -40,6 +77,29 @@ function formatDate(date: string) {
   }).format(new Date(date));
 }
 
+function getFullName(firstName?: string | null, lastName?: string | null) {
+  const fullName = `${firstName || ""} ${lastName || ""}`.trim();
+
+  return fullName || "—";
+}
+
+function getAddressLines({
+  address,
+  postalCode,
+  city,
+  country,
+}: {
+  address?: string | null;
+  postalCode?: string | null;
+  city?: string | null;
+  country?: string | null;
+}) {
+  const postalCity = [postalCode, city].filter(Boolean).join(" ");
+  const lines = [address, postalCity || null, country].filter(Boolean);
+
+  return lines.length ? lines : ["—"];
+}
+
 async function getSignedDevisUrl(path: string | null) {
   if (!path) return null;
 
@@ -53,6 +113,39 @@ async function getSignedDevisUrl(path: string | null) {
   }
 
   return data.signedUrl;
+}
+
+async function deleteOrder(formData: FormData) {
+  "use server";
+
+  const orderId = String(formData.get("orderId") || "");
+
+  if (!orderId) {
+    return;
+  }
+
+  const { error: itemsError } = await supabaseAdmin
+    .from("order_items")
+    .delete()
+    .eq("order_id", orderId);
+
+  if (itemsError) {
+    console.error("Erreur suppression produits commande:", itemsError);
+    return;
+  }
+
+  const { error: orderError } = await supabaseAdmin
+    .from("orders")
+    .delete()
+    .eq("id", orderId);
+
+  if (orderError) {
+    console.error("Erreur suppression commande:", orderError);
+    return;
+  }
+
+  revalidatePath("/admin/orders");
+  redirect("/admin/orders");
 }
 
 export default async function AdminOrderDetailPage({ params }: Props) {
@@ -110,6 +203,68 @@ export default async function AdminOrderDetailPage({ params }: Props) {
 
   const orderItems = (items ?? []) as OrderItem[];
   const devisUrl = await getSignedDevisUrl(order.devis_pdf_url);
+  const orderAddress = order as OrderAddressData;
+
+  const billingFirstName =
+    orderAddress.billing_first_name || orderAddress.customer_first_name;
+  const billingLastName =
+    orderAddress.billing_last_name || orderAddress.customer_last_name;
+  const billingEmail = orderAddress.billing_email || orderAddress.customer_email;
+  const billingPhone = orderAddress.billing_phone || orderAddress.customer_phone;
+  const billingAddress =
+    orderAddress.billing_address || orderAddress.customer_address;
+  const billingPostalCode =
+    orderAddress.billing_postal_code || orderAddress.customer_postal_code;
+  const billingCity = orderAddress.billing_city || orderAddress.customer_city;
+  const billingCountry =
+    orderAddress.billing_country || orderAddress.customer_country;
+
+  const shippingFirstName =
+    orderAddress.shipping_first_name ||
+    orderAddress.billing_first_name ||
+    orderAddress.customer_first_name;
+  const shippingLastName =
+    orderAddress.shipping_last_name ||
+    orderAddress.billing_last_name ||
+    orderAddress.customer_last_name;
+  const shippingEmail =
+    orderAddress.shipping_email ||
+    orderAddress.billing_email ||
+    orderAddress.customer_email;
+  const shippingPhone =
+    orderAddress.shipping_phone ||
+    orderAddress.billing_phone ||
+    orderAddress.customer_phone;
+  const shippingAddress =
+    orderAddress.shipping_address ||
+    orderAddress.billing_address ||
+    orderAddress.customer_address;
+  const shippingPostalCode =
+    orderAddress.shipping_postal_code ||
+    orderAddress.billing_postal_code ||
+    orderAddress.customer_postal_code;
+  const shippingCity =
+    orderAddress.shipping_city ||
+    orderAddress.billing_city ||
+    orderAddress.customer_city;
+  const shippingCountry =
+    orderAddress.shipping_country ||
+    orderAddress.billing_country ||
+    orderAddress.customer_country;
+
+  const billingAddressLines = getAddressLines({
+    address: billingAddress,
+    postalCode: billingPostalCode,
+    city: billingCity,
+    country: billingCountry,
+  });
+
+  const shippingAddressLines = getAddressLines({
+    address: shippingAddress,
+    postalCode: shippingPostalCode,
+    city: shippingCity,
+    country: shippingCountry,
+  });
 
   return (
     <main className="min-h-screen bg-[#f7f4ee] px-6 py-10">
@@ -148,6 +303,8 @@ export default async function AdminOrderDetailPage({ params }: Props) {
                 orderId={order.id}
                 hasDevis={Boolean(order.devis_pdf_url)}
               />
+
+              <DeleteOrderButton orderId={order.id} action={deleteOrder} />
             </div>
           </div>
 
@@ -198,47 +355,87 @@ export default async function AdminOrderDetailPage({ params }: Props) {
 
           <div className="mt-8 grid gap-6 md:grid-cols-2">
             <div className="rounded-3xl border border-black/10 p-6">
-              <h2 className="text-lg font-semibold">Client</h2>
+              <h2 className="text-lg font-semibold">Facturation</h2>
 
               <div className="mt-4 space-y-2 text-sm text-neutral-600">
                 <p>
-                  <strong>Email :</strong> {order.customer_email}
+                  <strong>Nom :</strong>{" "}
+                  {getFullName(billingFirstName, billingLastName)}
                 </p>
+
                 <p>
-                  <strong>Téléphone :</strong> {order.customer_phone}
+                  <strong>Email :</strong> {billingEmail || "—"}
                 </p>
+
                 <p>
-                  <strong>Adresse :</strong> {order.customer_address || "—"}
+                  <strong>Téléphone :</strong> {billingPhone || "—"}
                 </p>
-                <p>
-                  <strong>Code postal :</strong>{" "}
-                  {order.customer_postal_code || "—"}
-                </p>
-                <p>
-                  <strong>Ville :</strong> {order.customer_city || "—"}
-                </p>
-                <p>
-                  <strong>Pays :</strong> {order.customer_country || "—"}
-                </p>
+
+                <div>
+                  <strong>Adresse :</strong>
+
+                  <div className="mt-2 rounded-2xl bg-[#f7f4ee] p-4 leading-6">
+                    {billingAddressLines.map((line) => (
+                      <p key={`billing-${line}`}>{line}</p>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
 
             <div className="rounded-3xl border border-black/10 p-6">
-              <h2 className="text-lg font-semibold">Montant</h2>
+              <h2 className="text-lg font-semibold">Livraison</h2>
 
               <div className="mt-4 space-y-2 text-sm text-neutral-600">
                 <p>
-                  <strong>Sous-total :</strong>{" "}
-                  {formatPrice(Number(order.subtotal || 0))}
+                  <strong>Nom :</strong>{" "}
+                  {getFullName(shippingFirstName, shippingLastName)}
                 </p>
+
                 <p>
-                  <strong>Livraison :</strong>{" "}
-                  {formatPrice(Number(order.delivery_price || 0))}
+                  <strong>Email :</strong> {shippingEmail || "—"}
                 </p>
-                <p className="text-xl font-semibold text-black">
-                  Total : {formatPrice(Number(order.total || 0))}
+
+                <p>
+                  <strong>Téléphone :</strong> {shippingPhone || "—"}
                 </p>
+
+                <div>
+                  <strong>Adresse :</strong>
+
+                  <div className="mt-2 rounded-2xl bg-[#f7f4ee] p-4 leading-6">
+                    {shippingAddressLines.map((line) => (
+                      <p key={`shipping-${line}`}>{line}</p>
+                    ))}
+                  </div>
+                </div>
+
+                {!orderAddress.shipping_address ? (
+                  <p className="pt-2 text-xs font-medium text-neutral-400">
+                    Même adresse que la facturation.
+                  </p>
+                ) : null}
               </div>
+            </div>
+          </div>
+
+          <div className="mt-6 rounded-3xl border border-black/10 p-6">
+            <h2 className="text-lg font-semibold">Montant</h2>
+
+            <div className="mt-4 space-y-2 text-sm text-neutral-600">
+              <p>
+                <strong>Sous-total :</strong>{" "}
+                {formatPrice(Number(order.subtotal || 0))}
+              </p>
+
+              <p>
+                <strong>Livraison :</strong>{" "}
+                {formatPrice(Number(order.delivery_price || 0))}
+              </p>
+
+              <p className="text-xl font-semibold text-black">
+                Total : {formatPrice(Number(order.total || 0))}
+              </p>
             </div>
           </div>
 
@@ -246,6 +443,7 @@ export default async function AdminOrderDetailPage({ params }: Props) {
             <div className="flex items-center justify-between gap-4">
               <div>
                 <h2 className="text-lg font-semibold">Produits commandés</h2>
+
                 <p className="mt-1 text-sm text-neutral-500">
                   Articles inclus dans cette commande.
                 </p>
@@ -334,6 +532,7 @@ export default async function AdminOrderDetailPage({ params }: Props) {
           {order.customer_message ? (
             <div className="mt-6 rounded-3xl border border-black/10 p-6">
               <h2 className="text-lg font-semibold">Message client</h2>
+
               <p className="mt-3 whitespace-pre-line text-sm leading-6 text-neutral-600">
                 {order.customer_message}
               </p>

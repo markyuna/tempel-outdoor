@@ -1,8 +1,10 @@
 // src/app/admin/orders/page.tsx
 
 import Link from "next/link";
+import { revalidatePath } from "next/cache";
 import { Eye, PackageCheck } from "lucide-react";
 
+import DeleteOrderButton from "@/components/admin/orders/DeleteOrderButton";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 type Order = {
@@ -47,8 +49,40 @@ function getStatusLabel(status: string) {
   return labels[status] || status;
 }
 
+async function deleteOrder(formData: FormData) {
+  "use server";
+
+  const orderId = String(formData.get("orderId") || "");
+
+  if (!orderId) {
+    return;
+  }
+
+  const { error: orderItemsError } = await supabaseAdmin
+    .from("order_items")
+    .delete()
+    .eq("order_id", orderId);
+
+  if (orderItemsError) {
+    console.error("Erreur suppression articles commande:", orderItemsError);
+    return;
+  }
+
+  const { error: orderError } = await supabaseAdmin
+    .from("orders")
+    .delete()
+    .eq("id", orderId);
+
+  if (orderError) {
+    console.error("Erreur suppression commande:", orderError);
+    return;
+  }
+
+  revalidatePath("/admin/orders");
+}
+
 export default async function AdminOrdersPage() {
-  const { data: orders, error } = await supabaseAdmin
+  const { data, error } = await supabaseAdmin
     .from("orders")
     .select(
       `
@@ -70,6 +104,8 @@ export default async function AdminOrdersPage() {
   if (error) {
     console.error("Erreur chargement commandes:", error);
   }
+
+  const orders = (data ?? []) as Order[];
 
   return (
     <main className="min-h-screen bg-[#f7f4ee] px-6 py-10">
@@ -100,15 +136,13 @@ export default async function AdminOrdersPage() {
         <div className="grid gap-4 md:grid-cols-3">
           <div className="rounded-3xl bg-white p-6 shadow-sm">
             <p className="text-sm text-neutral-500">Commandes totales</p>
-            <p className="mt-2 text-3xl font-semibold">
-              {orders?.length ?? 0}
-            </p>
+            <p className="mt-2 text-3xl font-semibold">{orders.length}</p>
           </div>
 
           <div className="rounded-3xl bg-white p-6 shadow-sm">
             <p className="text-sm text-neutral-500">Nouvelles commandes</p>
             <p className="mt-2 text-3xl font-semibold">
-              {orders?.filter((order) => order.status === "new").length ?? 0}
+              {orders.filter((order) => order.status === "new").length}
             </p>
           </div>
 
@@ -116,17 +150,17 @@ export default async function AdminOrdersPage() {
             <p className="text-sm text-neutral-500">CA potentiel</p>
             <p className="mt-2 text-3xl font-semibold">
               {formatPrice(
-                orders?.reduce(
+                orders.reduce(
                   (total, order) => total + Number(order.total || 0),
                   0
-                ) ?? 0
+                )
               )}
             </p>
           </div>
         </div>
 
         <div className="mt-8 overflow-hidden rounded-[2rem] bg-white shadow-sm">
-          {!orders?.length ? (
+          {!orders.length ? (
             <div className="flex flex-col items-center justify-center px-6 py-20 text-center">
               <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-[#f7f4ee]">
                 <PackageCheck className="h-7 w-7 text-[#9c7b4f]" />
@@ -221,13 +255,21 @@ export default async function AdminOrdersPage() {
                       </td>
 
                       <td className="px-6 py-5 text-right">
-                        <Link
-                          href={`/admin/orders/${order.id}`}
-                          className="inline-flex items-center gap-2 rounded-full bg-black px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#2b241f]"
-                        >
-                          <Eye className="h-4 w-4" />
-                          Voir
-                        </Link>
+                        <div className="flex justify-end gap-2">
+                          <Link
+                            href={`/admin/orders/${order.id}`}
+                            className="inline-flex items-center gap-2 rounded-full bg-black px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#2b241f]"
+                          >
+                            <Eye className="h-4 w-4" />
+                            Voir
+                          </Link>
+
+                          <DeleteOrderButton
+                            orderId={order.id}
+                            action={deleteOrder}
+                            variant="icon"
+                          />
+                        </div>
                       </td>
                     </tr>
                   ))}
