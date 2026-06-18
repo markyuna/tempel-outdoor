@@ -1,6 +1,7 @@
 // src/components/home/GoogleReviewsSection.tsx
 
 import Image from "next/image";
+import Link from "next/link";
 import { BadgeCheck, Star } from "lucide-react";
 
 const reviewsRowOne = [
@@ -143,12 +144,13 @@ export default function GoogleReviewsSection() {
 
         <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-lg font-semibold text-neutral-800">
           <span>4.8 étoiles basé sur</span>
-          <a
+
+          <Link
             href="/fr/contact"
             className="underline underline-offset-4 transition hover:text-neutral-500"
           >
             426 avis
-          </a>
+          </Link>
         </div>
       </div>
 

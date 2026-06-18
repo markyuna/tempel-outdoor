@@ -419,7 +419,7 @@ export default async function ClientOrderDetailPage({ params }: Props) {
                   ) : null}
 
                   <a
-                    href={order.devis_pdf_url}
+                    href={`/api/orders/${order.id}/download-devis`}
                     target="_blank"
                     rel="noreferrer"
                     className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-black px-6 py-4 text-sm font-semibold uppercase tracking-[0.18em] text-white transition hover:bg-[#2b241f]"
