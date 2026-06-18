@@ -1,6 +1,8 @@
 // src/lib/devis/generateDevisPdf.ts
 
-import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { readFile } from "node:fs/promises";
+
+import { PDFDocument, PDFPage, StandardFonts, rgb } from "pdf-lib";
 
 type Order = {
   id: string;
@@ -68,21 +70,61 @@ function formatPrice(price: number) {
 }
 
 function drawText(
-  page: ReturnType<PDFDocument["addPage"]>,
+  page: PDFPage,
   text: string,
-  options: Parameters<typeof page.drawText>[1]
+  options: Parameters<PDFPage["drawText"]>[1]
 ) {
   page.drawText(pdfText(text), options);
+}
+
+async function drawLogo({
+  pdfDoc,
+  page,
+  logoPath,
+}: {
+  pdfDoc: PDFDocument;
+  page: PDFPage;
+  logoPath?: string;
+}) {
+  if (!logoPath) {
+    return false;
+  }
+
+  try {
+    const logoBytes = await readFile(logoPath);
+
+    const logoImage = logoPath.toLowerCase().endsWith(".jpg")
+      ? await pdfDoc.embedJpg(logoBytes)
+      : logoPath.toLowerCase().endsWith(".jpeg")
+        ? await pdfDoc.embedJpg(logoBytes)
+        : await pdfDoc.embedPng(logoBytes);
+
+    const logoDimensions = logoImage.scaleToFit(145, 26);
+
+    page.drawImage(logoImage, {
+      x: 50,
+      y: 811,
+      width: logoDimensions.width,
+      height: logoDimensions.height,
+    });
+
+    return true;
+  } catch (error) {
+    console.error("Erreur chargement logo devis:", error);
+    return false;
+  }
 }
 
 export async function generateDevisPdf({
   order,
   items,
   devisNumber,
+  logoPath,
 }: {
   order: Order;
   items: OrderItem[];
   devisNumber: string;
+  logoPath?: string;
 }) {
   const pdfDoc = await PDFDocument.create();
   const page = pdfDoc.addPage([595, 842]);
@@ -104,13 +146,21 @@ export async function generateDevisPdf({
     color: black,
   });
 
-  drawText(page, COMPANY.name, {
-    x: 50,
-    y: 815,
-    size: 14,
-    font: bold,
-    color: rgb(1, 1, 1),
+  const hasLogo = await drawLogo({
+    pdfDoc,
+    page,
+    logoPath,
   });
+
+  if (!hasLogo) {
+    drawText(page, COMPANY.name, {
+      x: 50,
+      y: 815,
+      size: 14,
+      font: bold,
+      color: rgb(1, 1, 1),
+    });
+  }
 
   drawText(page, "DEVIS", {
     x: 465,

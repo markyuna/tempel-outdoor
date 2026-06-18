@@ -1,5 +1,7 @@
 // src/app/api/orders/[id]/generate-devis/route.ts
 
+import path from "node:path";
+
 import { NextResponse } from "next/server";
 
 import { generateDevisNumber } from "@/lib/devis/generateDevisNumber";
@@ -50,10 +52,13 @@ export async function POST(_request: Request, { params }: Props) {
 
     const devisNumber = order.devis_number || generateDevisNumber(order.id);
 
+    const logoPath = path.join(process.cwd(), "public", "images", "logo.png");
+
     const pdfBytes = await generateDevisPdf({
       order,
       items: items ?? [],
       devisNumber,
+      logoPath,
     });
 
     const pdfBuffer = Buffer.from(pdfBytes);
