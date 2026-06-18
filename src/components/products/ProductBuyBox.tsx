@@ -10,7 +10,7 @@ import {
   ShoppingBag,
   Truck,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 
 type ProductOption = {
   id: string;
@@ -43,6 +43,8 @@ type Props = {
   shortDescription: string | null;
   deliveryTime: string | null;
   options: ProductOption[];
+  initialIsFavorite?: boolean;
+  locale?: string;
 };
 
 const CART_STORAGE_KEY = "tempel_cart";
@@ -76,8 +78,13 @@ export default function ProductBuyBox({
   shortDescription,
   deliveryTime,
   options,
+  initialIsFavorite = false,
+  locale = "fr",
 }: Props) {
   const [added, setAdded] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(initialIsFavorite);
+  const [favoriteError, setFavoriteError] = useState<string | null>(null);
+  const [isFavoritePending, startFavoriteTransition] = useTransition();
 
   const sortedOptions = useMemo(
     () => [...options].sort((a, b) => (a.position ?? 0) - (b.position ?? 0)),
@@ -154,6 +161,55 @@ export default function ProductBuyBox({
     window.setTimeout(() => {
       setAdded(false);
     }, 1800);
+  }
+
+  function handleToggleFavorite() {
+    setFavoriteError(null);
+
+    startFavoriteTransition(async () => {
+      const nextIsFavorite = !isFavorite;
+
+      setIsFavorite(nextIsFavorite);
+
+      try {
+        const response = await fetch("/api/favorites", {
+          method: nextIsFavorite ? "POST" : "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            productId: id,
+          }),
+        });
+
+        const result = await response.json().catch(() => null);
+
+        if (!response.ok) {
+          setIsFavorite(!nextIsFavorite);
+
+          if (response.status === 401) {
+            window.location.href = `/${locale}/auth/login`;
+            return;
+          }
+
+          setFavoriteError(
+            result?.error ||
+              "Impossible de mettre à jour ce produit dans vos favoris."
+          );
+
+          return;
+        }
+
+        setIsFavorite(Boolean(result?.isFavorite));
+      } catch (error) {
+        console.error("Erreur favori:", error);
+
+        setIsFavorite(!nextIsFavorite);
+        setFavoriteError(
+          "Une erreur est survenue. Veuillez réessayer dans quelques instants."
+        );
+      }
+    });
   }
 
   return (
@@ -277,11 +333,32 @@ export default function ProductBuyBox({
 
           <button
             type="button"
-            className="inline-flex h-14 w-14 items-center justify-center rounded-full border border-black/10 transition hover:bg-[#f7f4ee]"
+            onClick={handleToggleFavorite}
+            disabled={isFavoritePending}
+            aria-pressed={isFavorite}
+            aria-label={
+              isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"
+            }
+            title={isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
+            className={`inline-flex h-14 w-14 items-center justify-center rounded-full border transition disabled:cursor-not-allowed disabled:opacity-60 ${
+              isFavorite
+                ? "border-red-200 bg-red-50 text-red-500 hover:bg-red-100"
+                : "border-black/10 text-black hover:bg-[#f7f4ee]"
+            }`}
           >
-            <Heart className="h-5 w-5" />
+            <Heart
+              className={`h-5 w-5 transition ${
+                isFavorite ? "fill-red-500 text-red-500" : ""
+              }`}
+            />
           </button>
         </div>
+
+        {favoriteError ? (
+          <p className="mt-3 rounded-2xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+            {favoriteError}
+          </p>
+        ) : null}
 
         <div className="mt-8 grid gap-4 border-t border-black/10 pt-7">
           <div className="flex gap-3">

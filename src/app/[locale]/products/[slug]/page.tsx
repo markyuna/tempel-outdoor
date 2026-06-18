@@ -157,6 +157,33 @@ async function getProduct(slug: string): Promise<Product | null> {
   return data as Product;
 }
 
+async function getInitialIsFavorite(productId: string) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    return false;
+  }
+
+  const { data: favorite, error } = await supabase
+    .from("favorites")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("product_id", productId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Erreur récupération favori produit:", error);
+    return false;
+  }
+
+  return Boolean(favorite);
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const product = await getProduct(slug);
@@ -307,6 +334,7 @@ export default async function ProductPage({ params }: Props) {
   const variants = sortVariants(product.product_variants ?? []);
   const options = sortOptions(product.product_options ?? []);
   const featuredImage = getFeaturedImage(media);
+  const initialIsFavorite = await getInitialIsFavorite(product.id);
 
   const isSpa = product.category === "spa";
   const isSauna = product.category === "sauna";
@@ -345,6 +373,8 @@ export default async function ProductPage({ params }: Props) {
               shortDescription={product.short_description}
               deliveryTime={product.delivery_time}
               options={options}
+              initialIsFavorite={initialIsFavorite}
+              locale={locale}
             />
           </div>
 
