@@ -5,6 +5,7 @@ import Link from "next/link";
 
 import DevisList from "@/components/account/DevisList";
 import OrdersList from "@/components/account/OrdersList";
+import RemoveFavoriteButton from "@/components/account/RemoveFavoriteButton";
 import LogoutButton from "@/components/auth/LogoutButton";
 
 type Order = {
@@ -190,35 +191,35 @@ function FavoritesSection({
   favorites: Favorite[];
 }) {
   return (
-    <div className="rounded-[2rem] border border-black/10 bg-white p-8 shadow-sm">
+    <div className="rounded-[2rem] border border-black/10 bg-white p-5 shadow-sm sm:p-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
-          <p className="text-sm uppercase tracking-[0.25em] text-[#b69a5b]">
+          <p className="text-xs uppercase tracking-[0.25em] text-[#b69a5b] sm:text-sm">
             Mes favoris
           </p>
 
-          <h2 className="mt-3 text-2xl font-semibold text-[#181512]">
+          <h2 className="mt-2 text-xl font-semibold text-[#181512] sm:text-2xl">
             Produits enregistrés
           </h2>
         </div>
 
         <Link
           href={`/${locale}`}
-          className="inline-flex items-center justify-center rounded-full border border-black/10 px-5 py-3 text-sm font-medium text-[#181512] transition hover:bg-[#f7f4ee]"
+          className="inline-flex items-center justify-center rounded-full border border-black/10 px-4 py-2.5 text-sm font-medium text-[#181512] transition hover:bg-[#f7f4ee]"
         >
           Continuer mes achats
         </Link>
       </div>
 
       {favorites.length === 0 ? (
-        <div className="mt-8 rounded-3xl bg-[#f7f4ee] p-6">
+        <div className="mt-6 rounded-2xl bg-[#f7f4ee] p-5">
           <p className="text-sm leading-6 text-neutral-600">
-            Vous n'avez pas encore ajouté de produits aux favoris. Lorsque vous
-            cliquez sur le cœur d'un produit, il apparaîtra ici.
+            Vous n&apos;avez pas encore ajouté de produits aux favoris. Lorsque
+            vous cliquez sur le cœur d&apos;un produit, il apparaîtra ici.
           </p>
         </div>
       ) : (
-        <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-6 space-y-3">
           {favorites.map((favorite) => {
             const product = favorite.products;
 
@@ -230,60 +231,69 @@ function FavoritesSection({
             const productHref = `/${locale}/products/${product.slug}`;
 
             return (
-              <Link
+              <article
                 key={favorite.id}
-                href={productHref}
-                className="group overflow-hidden rounded-3xl border border-black/10 bg-[#f7f4ee] transition hover:-translate-y-1 hover:shadow-lg"
+                className="flex gap-3 rounded-2xl border border-black/10 bg-[#f7f4ee] p-3 transition hover:bg-white hover:shadow-sm sm:gap-4"
               >
-                <div className="relative aspect-[4/3] overflow-hidden bg-neutral-200">
+                <Link
+                  href={productHref}
+                  className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-neutral-200 sm:h-24 sm:w-28"
+                >
                   {image ? (
                     <Image
                       src={image.url}
                       alt={image.alt || product.name}
                       fill
-                      sizes="(min-width: 1024px) 320px, (min-width: 768px) 50vw, 100vw"
-                      className="object-cover transition duration-500 group-hover:scale-105"
+                      sizes="112px"
+                      className="object-cover transition duration-500 hover:scale-105"
                     />
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center px-6 text-center text-sm text-neutral-500">
+                    <div className="flex h-full w-full items-center justify-center px-2 text-center text-[10px] text-neutral-500">
                       Image indisponible
                     </div>
                   )}
+                </Link>
 
-                  <div className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-[#181512] shadow-sm backdrop-blur">
-                    Favori
-                  </div>
-                </div>
-
-                <div className="p-5">
-                  <p className="text-xs uppercase tracking-[0.2em] text-[#b69a5b]">
-                    {getCategoryLabel(product.category)}
-                  </p>
-
-                  <h3 className="mt-2 line-clamp-2 text-lg font-semibold text-[#181512]">
-                    {product.name}
-                  </h3>
-
-                  {product.short_description ? (
-                    <p className="mt-3 line-clamp-2 text-sm leading-6 text-neutral-600">
-                      {product.short_description}
+                <div className="flex min-w-0 flex-1 flex-col">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#b69a5b]">
+                      {getCategoryLabel(product.category)}
                     </p>
-                  ) : null}
 
-                  <div className="mt-5 flex items-center justify-between gap-4">
-                    <p className="font-semibold text-[#181512]">
+                    <Link href={productHref}>
+                      <h3 className="mt-1 line-clamp-2 text-sm font-semibold leading-5 text-[#181512] transition hover:underline sm:text-base">
+                        {product.name}
+                      </h3>
+                    </Link>
+
+                    {product.short_description ? (
+                      <p className="mt-1 hidden line-clamp-1 text-xs leading-5 text-neutral-600 sm:block">
+                        {product.short_description}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm font-semibold text-[#181512] sm:text-base">
                       {Number(product.price).toLocaleString("fr-FR", {
                         style: "currency",
                         currency: "EUR",
                       })}
                     </p>
 
-                    <span className="text-sm font-medium text-[#181512] underline underline-offset-4">
-                      Voir
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={productHref}
+                        className="rounded-full border border-black/10 bg-white px-3 py-2 text-xs font-semibold text-[#181512] transition hover:bg-[#181512] hover:text-white"
+                      >
+                        Voir
+                      </Link>
+
+                      <RemoveFavoriteButton productId={product.id} />
+                    </div>
                   </div>
                 </div>
-              </Link>
+              </article>
             );
           })}
         </div>
