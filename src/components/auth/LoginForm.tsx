@@ -1,29 +1,37 @@
+// src/components/auth/LoginForm.tsx
+
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 
 import { login } from "@/actions/auth/login";
 
 export default function LoginForm() {
   const [error, setError] = useState("");
+  const [isPending, startTransition] = useTransition();
+
+  function handleLogin(formData: FormData) {
+    setError("");
+
+    startTransition(async () => {
+      const result = await login(formData);
+
+      if (result?.error) {
+        setError(result.error);
+      }
+    });
+  }
 
   return (
-    <form
-      action={async (formData) => {
-        const result = await login(formData);
-
-        if (result?.error) {
-          setError(result.error);
-        }
-      }}
-      className="space-y-4"
-    >
+    <form action={handleLogin} className="space-y-4">
       <input
         name="email"
         type="email"
         placeholder="Email"
         required
-        className="w-full rounded-xl border p-3"
+        autoFocus
+        autoComplete="email"
+        className="w-full rounded-xl border p-3 outline-none transition focus:border-black"
       />
 
       <input
@@ -31,20 +39,18 @@ export default function LoginForm() {
         type="password"
         placeholder="Mot de passe"
         required
-        className="w-full rounded-xl border p-3"
+        autoComplete="current-password"
+        className="w-full rounded-xl border p-3 outline-none transition focus:border-black"
       />
 
-      {error && (
-        <p className="text-sm text-red-500">
-          {error}
-        </p>
-      )}
+      {error ? <p className="text-sm text-red-500">{error}</p> : null}
 
       <button
         type="submit"
-        className="w-full rounded-xl bg-black px-6 py-3 text-white"
+        disabled={isPending}
+        className="w-full rounded-xl bg-black px-6 py-3 font-medium text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:bg-neutral-400"
       >
-        Se connecter
+        {isPending ? "Connexion..." : "Se connecter"}
       </button>
     </form>
   );
