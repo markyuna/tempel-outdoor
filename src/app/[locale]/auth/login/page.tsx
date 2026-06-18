@@ -10,6 +10,7 @@ type LoginPageProps = {
   }>;
   searchParams?: Promise<{
     redirectTo?: string;
+    reason?: string;
   }>;
 };
 
@@ -21,6 +22,9 @@ export default async function LoginPage({
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
 
   const redirectTo = resolvedSearchParams?.redirectTo;
+  const reason = resolvedSearchParams?.reason;
+
+  const showInactiveMessage = reason === "inactive";
 
   const registerHref = redirectTo
     ? `/${locale}/auth/register?redirectTo=${encodeURIComponent(redirectTo)}`
@@ -49,6 +53,13 @@ export default async function LoginPage({
             commandes et finaliser plus rapidement votre panier.
           </p>
         </div>
+
+        {showInactiveMessage ? (
+          <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm leading-6 text-amber-900">
+            Votre session a expiré pour cause d&apos;inactivité. Veuillez vous
+            reconnecter pour continuer.
+          </div>
+        ) : null}
 
         <LoginForm />
 
