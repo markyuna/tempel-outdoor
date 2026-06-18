@@ -191,7 +191,7 @@ function FavoritesSection({
   favorites: Favorite[];
 }) {
   return (
-    <div className="rounded-[2rem] border border-black/10 bg-white p-5 shadow-sm sm:p-6">
+    <div id="favoris" className="rounded-[2rem] border border-black/10 bg-white p-5 shadow-sm sm:p-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.25em] text-[#b69a5b] sm:text-sm">
