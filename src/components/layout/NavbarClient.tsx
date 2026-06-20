@@ -4,11 +4,15 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import type { LucideIcon } from "lucide-react";
 import {
   ChevronDown,
+  CreditCard,
   Heart,
+  Mail,
   Menu,
   ShoppingBag,
+  Truck,
   User,
   X,
 } from "lucide-react";
@@ -27,7 +31,22 @@ type CartItem = {
   quantity: number;
 };
 
-const navItems = [
+type NavItem = {
+  label: string;
+  href?: string;
+  children?: {
+    label: string;
+    href: string;
+  }[];
+};
+
+type TopBarItem = {
+  label: string;
+  icon: LucideIcon;
+  href?: string;
+};
+
+const navItems: NavItem[] = [
   { label: "Accueil", href: "/fr" },
   {
     label: "Bien-être",
@@ -46,6 +65,22 @@ const navItems = [
   { label: "Fitness", href: "/fr/fitness" },
   { label: "Réalisations", href: "/fr/realisations" },
   { label: "Contact", href: "/fr/contact" },
+];
+
+const topBarItems: TopBarItem[] = [
+  {
+    label: "Livraison France",
+    icon: Truck,
+  },
+  {
+    label: "Paiement 2× 3× 4× avec Alma",
+    icon: CreditCard,
+  },
+  {
+    label: "Conseiller expert : contact@tempel-outdoor.fr",
+    icon: Mail,
+    href: "mailto:contact@tempel-outdoor.fr",
+  },
 ];
 
 function getCartCount() {
@@ -69,6 +104,35 @@ function isAuthSessionMissingError(error: unknown) {
     "name" in error &&
     error.name === "AuthSessionMissingError"
   );
+}
+
+function TopBarServiceItem({ item }: { item: TopBarItem }) {
+  const Icon = item.icon;
+
+  const content = (
+    <>
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/25 shadow-sm ring-1 ring-white/35 transition group-hover:bg-white/40">
+        <Icon className="h-4 w-4" />
+      </span>
+
+      <span className="whitespace-nowrap font-medium tracking-wide">
+        {item.label}
+      </span>
+    </>
+  );
+
+  if (item.href) {
+    return (
+      <a
+        href={item.href}
+        className="group flex items-center gap-2 transition hover:text-black"
+      >
+        {content}
+      </a>
+    );
+  }
+
+  return <div className="flex items-center gap-2">{content}</div>;
 }
 
 export default function NavbarClient({
@@ -130,11 +194,20 @@ export default function NavbarClient({
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-black text-white">
-      <div className="hidden border-b border-white/10 bg-[#d7b86e] px-6 py-2 text-sm text-black md:block">
-        <div className="mx-auto flex max-w-7xl items-center justify-between">
-          <span>Livraison France</span>
-          <span>Paiement 2× 3× 4× avec Alma</span>
-          <span>Conseiller expert : contact@tempel-outdoor.fr</span>
+      <div className="hidden border-b border-white/10 bg-gradient-to-r from-[#b9954f] via-[#e4c977] to-[#b9954f] px-6 py-2.5 text-sm text-[#1f1a12] shadow-[inset_0_-1px_0_rgba(255,255,255,0.18)] md:block">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-6">
+          {topBarItems.map((item, index) => (
+            <div key={item.label} className="flex items-center gap-6">
+              {index > 0 ? (
+                <span
+                  aria-hidden="true"
+                  className="hidden h-5 w-px bg-black/15 xl:block"
+                />
+              ) : null}
+
+              <TopBarServiceItem item={item} />
+            </div>
+          ))}
         </div>
       </div>
 
@@ -150,7 +223,7 @@ export default function NavbarClient({
             width={240}
             height={80}
             priority
-            className="h-auto w-42.5 object-contain sm:w-[190px] xl:w-[220px]"
+            className="h-auto w-[170px] object-contain sm:w-[190px] xl:w-[220px]"
           />
         </Link>
 
@@ -184,7 +257,7 @@ export default function NavbarClient({
             ) : (
               <Link
                 key={item.href}
-                href={item.href}
+                href={item.href ?? "/fr"}
                 className="text-sm font-medium uppercase tracking-wide text-white/80 transition hover:text-[#d7b86e]"
               >
                 {item.label}
@@ -301,7 +374,7 @@ export default function NavbarClient({
                   </div>
                 ) : (
                   <Link
-                    href={item.href}
+                    href={item.href ?? "/fr"}
                     onClick={() => setIsMobileMenuOpen(false)}
                     className="flex items-center justify-between text-sm font-medium uppercase tracking-wide text-white/80 transition hover:text-[#d7b86e]"
                   >

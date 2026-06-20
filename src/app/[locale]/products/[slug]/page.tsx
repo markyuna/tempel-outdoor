@@ -397,7 +397,7 @@ export default async function ProductPage({ params }: Props) {
           <section className="mt-8 grid gap-4 md:grid-cols-3">
             {[
               {
-                title: "Livraison France & Europe",
+                title: "Livraison France",
                 text: "Accompagnement selon le produit, le volume et votre adresse.",
               },
               {
