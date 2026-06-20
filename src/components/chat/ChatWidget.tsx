@@ -3,6 +3,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import {
   Bot,
   CheckCircle2,
@@ -48,6 +49,8 @@ function createMessageId() {
 }
 
 export default function ChatWidget() {
+  const pathname = usePathname();
+
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [inputValue, setInputValue] = useState("");
@@ -55,6 +58,7 @@ export default function ChatWidget() {
   const [isSendingContact, setIsSendingContact] = useState(false);
   const [contactSent, setContactSent] = useState(false);
   const [contactError, setContactError] = useState<string | null>(null);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
 
   const [contactForm, setContactForm] = useState<ContactFormState>({
     name: "",
@@ -65,6 +69,8 @@ export default function ChatWidget() {
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const lastUserQuestionRef = useRef("");
+  const previousPathnameRef = useRef(pathname);
+  const saveTimeoutRef = useRef<number | null>(null);
 
   const conversationText = useMemo(() => {
     return messages
@@ -77,11 +83,80 @@ export default function ChatWidget() {
   }, [messages]);
 
   useEffect(() => {
+    async function loadChatHistory() {
+      try {
+        const response = await fetch("/api/chat-history", {
+          method: "GET",
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          setHistoryLoaded(true);
+          return;
+        }
+
+        const data = await response.json();
+
+        if (Array.isArray(data.messages) && data.messages.length > 0) {
+          setMessages(data.messages);
+        }
+      } catch (error) {
+        console.error("Erreur chargement historique chatbot:", error);
+      } finally {
+        setHistoryLoaded(true);
+      }
+    }
+
+    loadChatHistory();
+  }, []);
+
+  useEffect(() => {
+    if (previousPathnameRef.current !== pathname) {
+      setIsOpen(false);
+      setShowContactForm(false);
+      setContactError(null);
+      previousPathnameRef.current = pathname;
+    }
+  }, [pathname]);
+
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({
       behavior: "smooth",
       block: "end",
     });
   }, [messages, showContactForm, contactSent]);
+
+  useEffect(() => {
+    if (!historyLoaded) {
+      return;
+    }
+
+    if (saveTimeoutRef.current) {
+      window.clearTimeout(saveTimeoutRef.current);
+    }
+
+    saveTimeoutRef.current = window.setTimeout(async () => {
+      try {
+        await fetch("/api/chat-history", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            messages,
+          }),
+        });
+      } catch (error) {
+        console.error("Erreur sauvegarde historique chatbot:", error);
+      }
+    }, 700);
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        window.clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [messages, historyLoaded]);
 
   function addMessage(role: ChatMessage["role"], content: string) {
     setMessages((currentMessages) => [
