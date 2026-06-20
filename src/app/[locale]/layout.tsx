@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 
 import AuthIdleLogout from "@/components/auth/AuthIdleLogout";
+import ChatWidget from "@/components/chat/ChatWidget";
 import Footer from "@/components/layout/Footer";
 import Navbar from "@/components/layout/Navbar";
 
@@ -17,6 +18,7 @@ export default function LocaleLayout({ children }: Props) {
       <Navbar />
       <main>{children}</main>
       <Footer />
+      <ChatWidget />
     </>
   );
 }
