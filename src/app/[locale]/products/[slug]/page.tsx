@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Sparkles } from "lucide-react";
 
 import ProductBuyBox from "@/components/products/ProductBuyBox";
 import ProductPurchaseSection from "@/components/products/ProductPurchaseSection";
@@ -232,6 +232,80 @@ function getFeaturedImage(media: ProductMedia[]) {
   );
 }
 
+function getProductDescriptionParagraphs(description: string | null) {
+  if (!description) {
+    return [];
+  }
+
+  return description
+    .split(/\n+/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean);
+}
+
+function ProductDescriptionSection({
+  productName,
+  description,
+}: {
+  productName: string;
+  description: string | null;
+}) {
+  const paragraphs = getProductDescriptionParagraphs(description);
+
+  if (paragraphs.length === 0) {
+    return null;
+  }
+
+  return (
+    <section className="relative mt-16 overflow-hidden rounded-[2.25rem] border border-black/10 bg-white p-8 shadow-[0_24px_70px_rgba(0,0,0,0.08)] md:p-10">
+      <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-[#d7b86e]/20 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-28 -left-28 h-72 w-72 rounded-full bg-[#c47a2c]/10 blur-3xl" />
+
+      <div className="relative grid gap-10 lg:grid-cols-[0.75fr_1.25fr] lg:items-start">
+        <div>
+          <span className="inline-flex items-center gap-2 rounded-full border border-[#d7b86e]/40 bg-[#fbf4e3] px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-[#9a6a21]">
+            <Sparkles className="h-3.5 w-3.5" />
+            Description
+          </span>
+
+          <h2 className="mt-6 max-w-md text-3xl font-semibold tracking-tight text-[#181512] md:text-4xl">
+            {productName}, pensé pour votre confort.
+          </h2>
+
+          <p className="mt-5 max-w-md text-sm leading-7 text-neutral-500">
+            Une présentation claire du produit, de son usage et de ses avantages
+            pour vous aider à choisir le modèle le plus adapté à votre espace.
+          </p>
+        </div>
+
+        <div className="rounded-[1.75rem] border border-black/10 bg-[#f7f4ee] p-6 md:p-8">
+          <div className="space-y-5 text-base leading-8 text-neutral-700">
+            {paragraphs.map((paragraph, index) => (
+              <p key={`${productName}-description-${index}`}>{paragraph}</p>
+            ))}
+          </div>
+
+          <div className="mt-8 grid gap-3 sm:grid-cols-3">
+            {[
+              "Confort au quotidien",
+              "Design extérieur",
+              "Sélection premium",
+            ].map((item) => (
+              <div
+                key={item}
+                className="flex items-center gap-2 rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm font-semibold text-[#181512]"
+              >
+                <CheckCircle2 className="h-4 w-4 text-[#c47a2c]" />
+                {item}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function ProductAtelierCard({
   image,
   alt,
@@ -377,6 +451,11 @@ export default async function ProductPage({ params }: Props) {
               locale={locale}
             />
           </div>
+
+          <ProductDescriptionSection
+            productName={product.name}
+            description={product.description}
+          />
 
           <section className="mt-20 grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-stretch">
             {isSauna ? (
