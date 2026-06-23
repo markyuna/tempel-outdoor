@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { getLocale } from "next-intl/server";
 import { BadgeCheck, Star } from "lucide-react";
 
 const reviewsRowOne = [
@@ -127,7 +128,9 @@ function ReviewsMarquee({
   );
 }
 
-export default function GoogleReviewsSection() {
+export default async function GoogleReviewsSection() {
+  const locale = await getLocale();
+
   return (
     <section className="relative overflow-hidden bg-[#eeeeed] py-20">
       <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-32 bg-gradient-to-r from-[#eeeeed] to-transparent" />
@@ -146,7 +149,7 @@ export default function GoogleReviewsSection() {
           <span>4.8 étoiles basé sur</span>
 
           <Link
-            href="/fr/contact"
+            href={`/${locale}/contact`}
             className="underline underline-offset-4 transition hover:text-neutral-500"
           >
             426 avis

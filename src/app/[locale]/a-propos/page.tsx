@@ -1,5 +1,6 @@
-import { Dumbbell, Waves, Flame, Trophy, Utensils } from "lucide-react";
+import { Waves, Flame, Trophy, Utensils } from "lucide-react";
 import Link from "next/link";
+import { getLocale } from "next-intl/server";
 
 const univers = [
   {
@@ -28,7 +29,9 @@ const univers = [
   },
 ];
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const locale = await getLocale();
+
   return (
     <main className="bg-[#f7f4ee] text-[#181512]">
       <section className="px-6 py-24 md:py-32">
@@ -93,7 +96,7 @@ export default function AboutPage() {
           </p>
 
           <Link
-            href="/fr/contact"
+            href={`/${locale}/contact`}
             className="mt-10 inline-flex rounded-full bg-[#d7b86e] px-8 py-4 text-sm font-semibold uppercase tracking-[0.2em] text-black transition hover:bg-white"
           >
             Nous contacter

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { getLocale } from "next-intl/server";
 import { ArrowRight, Dumbbell, ShieldCheck, Target } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -8,7 +9,9 @@ export const metadata: Metadata = {
     "Découvrez nos équipements fitness premium pour créer un espace d’entraînement confortable et performant à domicile.",
 };
 
-export default function FitnessPage() {
+export default async function FitnessPage() {
+  const locale = await getLocale();
+
   return (
     <main className="bg-[#f7f4ee] text-[#181512]">
       <section className="px-6 py-24 md:py-32">
@@ -28,7 +31,7 @@ export default function FitnessPage() {
           </p>
 
           <Link
-            href="/fr/contact"
+            href={`/${locale}/contact`}
             className="mt-10 inline-flex items-center gap-3 rounded-full bg-[#181512] px-7 py-4 text-sm font-semibold uppercase tracking-[0.2em] text-white transition hover:-translate-y-0.5 hover:bg-[#2b241f]"
           >
             Demander un conseil

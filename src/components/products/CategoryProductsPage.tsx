@@ -1,5 +1,6 @@
 // src/components/products/CategoryProductsPage.tsx
 
+import Image from "next/image";
 import Link from "next/link";
 
 import { createClient } from "@/lib/supabase/server";
@@ -182,10 +183,12 @@ export default async function CategoryProductsPage({
                   >
                     <div className="relative aspect-[4/3] overflow-hidden bg-white">
                       {image?.url ? (
-                        <img
+                        <Image
                           src={image.url}
                           alt={image.alt || product.name}
-                          className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                          fill
+                          sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                          className="object-cover transition duration-700 group-hover:scale-105"
                         />
                       ) : (
                         <div className="flex h-full items-center justify-center text-sm text-neutral-400">

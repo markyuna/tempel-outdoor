@@ -6,29 +6,29 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import Link from "next/link";
+import { getLocale } from "next-intl/server";
 import type { ReactNode } from "react";
 
-const shopLinks = [
-  { label: "Spa", href: "/fr/bien-etre/spa" },
-  { label: "Sauna", href: "/fr/bien-etre/sauna" },
-  { label: "Baby-foot", href: "/fr/loisirs/baby-foot" },
-  { label: "Billard", href: "/fr/loisirs/billard" },
-  { label: "Fitness Premium", href: "/fr/fitness" },
-];
+export default async function Footer() {
+  const locale = await getLocale();
 
-const infoLinks = [
-  { label: "À propos", href: "/fr/a-propos" },
-  { label: "Réalisations", href: "/fr/realisations" },
-  { label: "Contact", href: "/fr/contact" },
-  { label: "CGV", href: "/fr/cgv" },
-  { label: "Mentions légales", href: "/fr/mentions-legales" },
-  {
-    label: "Politique de confidentialité",
-    href: "/fr/politique-confidentialite",
-  },
-];
+  const shopLinks = [
+    { label: "Spa", href: `/${locale}/bien-etre/spa` },
+    { label: "Sauna", href: `/${locale}/bien-etre/sauna` },
+    { label: "Baby-foot", href: `/${locale}/loisirs/baby-foot` },
+    { label: "Billard", href: `/${locale}/loisirs/billard` },
+    { label: "Fitness Premium", href: `/${locale}/fitness` },
+  ];
 
-export default function Footer() {
+  const infoLinks = [
+    { label: "À propos", href: `/${locale}/a-propos` },
+    { label: "Réalisations", href: `/${locale}/realisations` },
+    { label: "Contact", href: `/${locale}/contact` },
+    { label: "CGV", href: `/${locale}/cgv` },
+    { label: "Mentions légales", href: `/${locale}/mentions-legales` },
+    { label: "Politique de confidentialité", href: `/${locale}/politique-confidentialite` },
+  ];
+
   return (
     <footer className="relative overflow-hidden bg-[#050505] text-white">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(215,184,110,0.16),transparent_35%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.08),transparent_30%)]" />
@@ -36,7 +36,7 @@ export default function Footer() {
       <div className="relative mx-auto max-w-7xl px-6 py-20">
         <div className="grid gap-12 lg:grid-cols-[1.4fr_1fr_1fr_1.1fr]">
           <div>
-            <Link href="/fr" className="inline-flex items-center gap-3">
+            <Link href={`/${locale}`} className="inline-flex items-center gap-3">
               <span className="text-2xl font-semibold tracking-[0.35em]">
                 TEMPEL
               </span>
@@ -101,7 +101,7 @@ export default function Footer() {
                 <span className="text-xs font-semibold">IG</span>
               </SocialLink>
 
-              <SocialLink href="/fr/contact" label="Site">
+              <SocialLink href={`/${locale}/contact`} label="Site">
                 <Globe className="h-4 w-4" />
               </SocialLink>
             </div>

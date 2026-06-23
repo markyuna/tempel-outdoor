@@ -75,7 +75,7 @@ export default function OrdersList({ locale = "fr", orders }: Props) {
         <h3 className="text-xl font-semibold">Mes commandes</h3>
 
         <p className="mt-4 text-neutral-500">
-          Vous n'avez encore passé aucune commande.
+          Vous n&apos;avez encore passé aucune commande.
         </p>
       </div>
     );

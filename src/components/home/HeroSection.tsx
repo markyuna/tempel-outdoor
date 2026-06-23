@@ -1,9 +1,11 @@
 // src/components/home/HeroSection.tsx
 
 import Link from "next/link";
+import { getLocale } from "next-intl/server";
 import { ArrowRight } from "lucide-react";
 
-export default function HeroSection() {
+export default async function HeroSection() {
+  const locale = await getLocale();
   return (
     <section className="relative flex min-h-screen items-center overflow-hidden text-white">
       <video
@@ -38,7 +40,7 @@ export default function HeroSection() {
 
           <div className="mt-10 flex flex-col gap-4 sm:flex-row">
             <Link
-              href="/fr/bien-etre"
+              href={`/${locale}/bien-etre`}
               className="group inline-flex items-center justify-center rounded-full bg-[#d7b86e] px-8 py-4 text-sm font-semibold text-black shadow-[0_20px_60px_rgba(215,184,110,0.25)] transition duration-300 hover:-translate-y-0.5 hover:bg-white"
             >
               Découvrir nos collections
@@ -46,7 +48,7 @@ export default function HeroSection() {
             </Link>
 
             <Link
-              href="/fr/contact"
+              href={`/${locale}/contact`}
               className="inline-flex items-center justify-center rounded-full border border-white/30 bg-white/10 px-8 py-4 text-sm font-semibold text-white backdrop-blur transition duration-300 hover:-translate-y-0.5 hover:border-[#d7b86e] hover:text-[#d7b86e]"
             >
               Parler à un conseiller

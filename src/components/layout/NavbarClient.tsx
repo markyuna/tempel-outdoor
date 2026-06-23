@@ -17,6 +17,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useLocale } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
@@ -45,27 +46,6 @@ type TopBarItem = {
   icon: LucideIcon;
   href?: string;
 };
-
-const navItems: NavItem[] = [
-  { label: "Accueil", href: "/fr" },
-  {
-    label: "Bien-être",
-    children: [
-      { label: "Spa extérieur", href: "/fr/bien-etre/spa" },
-      { label: "Sauna bois", href: "/fr/bien-etre/sauna" },
-    ],
-  },
-  {
-    label: "Loisirs",
-    children: [
-      { label: "Baby-foot extérieur", href: "/fr/loisirs/baby-foot" },
-      { label: "Billard convertible", href: "/fr/loisirs/billard" },
-    ],
-  },
-  { label: "Fitness", href: "/fr/fitness" },
-  { label: "Réalisations", href: "/fr/realisations" },
-  { label: "Contact", href: "/fr/contact" },
-];
 
 const topBarItems: TopBarItem[] = [
   {
@@ -138,14 +118,36 @@ function TopBarServiceItem({ item }: { item: TopBarItem }) {
 export default function NavbarClient({
   initialIsAuthenticated,
 }: NavbarClientProps) {
+  const locale = useLocale();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [cartCount, setCartCount] = useState(0);
   const [isAuthenticated, setIsAuthenticated] = useState(
     initialIsAuthenticated
   );
 
-  const accountHref = isAuthenticated ? "/fr/mon-compte" : "/fr/auth/login";
-  const favoritesHref = "/fr/mon-compte#favoris";
+  const accountHref = isAuthenticated ? `/${locale}/mon-compte` : `/${locale}/auth/login`;
+  const favoritesHref = `/${locale}/mon-compte#favoris`;
+
+  const navItems: NavItem[] = [
+    { label: "Accueil", href: `/${locale}` },
+    {
+      label: "Bien-être",
+      children: [
+        { label: "Spa extérieur", href: `/${locale}/bien-etre/spa` },
+        { label: "Sauna bois", href: `/${locale}/bien-etre/sauna` },
+      ],
+    },
+    {
+      label: "Loisirs",
+      children: [
+        { label: "Baby-foot extérieur", href: `/${locale}/loisirs/baby-foot` },
+        { label: "Billard convertible", href: `/${locale}/loisirs/billard` },
+      ],
+    },
+    { label: "Fitness", href: `/${locale}/fitness` },
+    { label: "Réalisations", href: `/${locale}/realisations` },
+    { label: "Contact", href: `/${locale}/contact` },
+  ];
 
   useEffect(() => {
     function updateCartCount() {
@@ -213,7 +215,7 @@ export default function NavbarClient({
 
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6">
         <Link
-          href="/fr"
+          href={`/${locale}`}
           aria-label="Tempel Outdoor - Accueil"
           className="relative flex shrink-0 items-center"
         >
@@ -257,7 +259,7 @@ export default function NavbarClient({
             ) : (
               <Link
                 key={item.href}
-                href={item.href ?? "/fr"}
+                href={item.href ?? `/${locale}`}
                 className="text-sm font-medium uppercase tracking-wide text-white/80 transition hover:text-[#d7b86e]"
               >
                 {item.label}
@@ -293,7 +295,7 @@ export default function NavbarClient({
           </Link>
 
           <Link
-            href="/fr/cart"
+            href={`/${locale}/cart`}
             aria-label="Voir le panier"
             className="relative inline-flex h-10 w-10 items-center justify-center rounded-md transition hover:bg-white/10 hover:text-[#d7b86e]"
           >
@@ -334,7 +336,7 @@ export default function NavbarClient({
           </Link>
 
           <Link
-            href="/fr/cart"
+            href={`/${locale}/cart`}
             className="relative inline-flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-white/10 hover:text-[#d7b86e]"
             aria-label="Voir le panier"
           >
@@ -374,7 +376,7 @@ export default function NavbarClient({
                   </div>
                 ) : (
                   <Link
-                    href={item.href ?? "/fr"}
+                    href={item.href ?? `/${locale}`}
                     onClick={() => setIsMobileMenuOpen(false)}
                     className="flex items-center justify-between text-sm font-medium uppercase tracking-wide text-white/80 transition hover:text-[#d7b86e]"
                   >

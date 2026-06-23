@@ -4,7 +4,6 @@ import Link from "next/link";
 import {
   ArrowRight,
   Eye,
-  FolderKanban,
   Image,
   Package,
   ShoppingBag,
@@ -51,12 +50,6 @@ const adminCards: AdminCard[] = [
     description: "Suivez les demandes et commandes clients.",
     href: "/admin/orders",
     icon: ShoppingBag,
-  },
-  {
-    title: "Catégories",
-    description: "Organisez les univers Spa, Sauna, Billard...",
-    href: "/admin/categories",
-    icon: FolderKanban,
   },
   {
     title: "Clients",

@@ -24,17 +24,6 @@ type RealisationMedia = {
   position: number | null;
 };
 
-type Realisation = {
-  id: string;
-  title: string;
-  slug: string;
-  category: string;
-  city: string | null;
-  description: string | null;
-  client_quote: string | null;
-  realisation_media: RealisationMedia[] | null;
-};
-
 function getSortedImages(media: RealisationMedia[] | null) {
   return [...(media ?? [])]
     .filter((item) => item.type === "image" || item.type === null)

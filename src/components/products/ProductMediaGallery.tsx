@@ -119,6 +119,7 @@ export default function ProductMediaGallery({
       document.body.style.overflow = "";
       window.removeEventListener("keydown", handleKeyDown);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLightboxOpen, activeIndex, sortedMedia]);
 
   return (
