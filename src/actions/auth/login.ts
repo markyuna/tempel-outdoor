@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 export async function login(formData: FormData) {
   const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
+  const locale = String(formData.get("locale") || "fr");
 
   const supabase = await createClient();
 
@@ -21,5 +22,5 @@ export async function login(formData: FormData) {
     };
   }
 
-  redirect("/fr/mon-compte");
+  redirect(`/${locale}/mon-compte`);
 }

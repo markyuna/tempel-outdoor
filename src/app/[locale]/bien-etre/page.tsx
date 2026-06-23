@@ -17,45 +17,51 @@ export const metadata: Metadata = {
     "Découvrez toutes les collections Tempel Outdoor : spas, saunas, billards, baby-foot et fitness extérieur haut de gamme.",
 };
 
-const collections = [
-  {
-    icon: Waves,
-    title: "Spas extérieurs",
-    description:
-      "Des spas de nage et bains à remous conçus pour la détente, la récupération et les moments de partage.",
-    href: "/fr/bien-etre/spa",
-  },
-  {
-    icon: Flame,
-    title: "Saunas bois",
-    description:
-      "Des saunas extérieurs élégants en bois, pensés pour une expérience bien-être authentique toute l’année.",
-    href: "/fr/bien-etre/sauna",
-  },
-  {
-    icon: Trophy,
-    title: "Billards outdoor",
-    description:
-      "Des billards premium convertibles en table à manger, parfaits pour créer un espace convivial et élégant.",
-    href: "/fr/loisirs/billard",
-  },
-  {
-    icon: Goal,
-    title: "Baby-foot extérieur",
-    description:
-      "Des baby-foot haut de gamme pensés pour l’extérieur, avec des finitions robustes et un design intemporel.",
-    href: "/fr/loisirs/baby-foot",
-  },
-  {
-    icon: Dumbbell,
-    title: "Fitness outdoor",
-    description:
-      "Des équipements fitness premium pour aménager une salle de sport privée, intérieure ou extérieure.",
-    href: "/fr/fitness",
-  },
-];
+type Props = {
+  params: Promise<{ locale: string }>;
+};
 
-export default function CollectionsPage() {
+export default async function CollectionsPage({ params }: Props) {
+  const { locale } = await params;
+
+  const collections = [
+    {
+      icon: Waves,
+      title: "Spas extérieurs",
+      description:
+        "Des spas de nage et bains à remous conçus pour la détente, la récupération et les moments de partage.",
+      href: `/${locale}/bien-etre/spa`,
+    },
+    {
+      icon: Flame,
+      title: "Saunas bois",
+      description:
+        "Des saunas extérieurs élégants en bois, pensés pour une expérience bien-être authentique toute l’année.",
+      href: `/${locale}/bien-etre/sauna`,
+    },
+    {
+      icon: Trophy,
+      title: "Billards outdoor",
+      description:
+        "Des billards premium convertibles en table à manger, parfaits pour créer un espace convivial et élégant.",
+      href: `/${locale}/loisirs/billard`,
+    },
+    {
+      icon: Goal,
+      title: "Baby-foot extérieur",
+      description:
+        "Des baby-foot haut de gamme pensés pour l’extérieur, avec des finitions robustes et un design intemporel.",
+      href: `/${locale}/loisirs/baby-foot`,
+    },
+    {
+      icon: Dumbbell,
+      title: "Fitness outdoor",
+      description:
+        "Des équipements fitness premium pour aménager une salle de sport privée, intérieure ou extérieure.",
+      href: `/${locale}/fitness`,
+    },
+  ];
+
   return (
     <main className="bg-[#f7f4ee] text-[#181512]">
       <section className="px-6 py-24 md:py-32">

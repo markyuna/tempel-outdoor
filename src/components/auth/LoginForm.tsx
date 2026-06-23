@@ -3,10 +3,13 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useParams } from "next/navigation";
 
 import { login } from "@/actions/auth/login";
 
 export default function LoginForm() {
+  const params = useParams<{ locale?: string }>();
+  const locale = params?.locale ?? "fr";
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
 
@@ -24,6 +27,7 @@ export default function LoginForm() {
 
   return (
     <form action={handleLogin} className="space-y-4">
+      <input type="hidden" name="locale" value={locale} />
       <input
         name="email"
         type="email"

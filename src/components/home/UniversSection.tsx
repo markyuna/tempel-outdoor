@@ -5,31 +5,35 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
-
-const univers = [
-  {
-    title: "Spa & Spa de nage",
-    href: "/fr/bien-etre/spa",
-    image: "/images/univers/spa-spa-de-nage.png",
-  },
-  {
-    title: "Sauna",
-    href: "/fr/bien-etre/sauna",
-    image: "/images/univers/sauna.png",
-  },
-  {
-    title: "Baby-foot",
-    href: "/fr/loisirs/baby-foot",
-    image: "/images/univers/baby-foot.png",
-  },
-  {
-    title: "Billard",
-    href: "/fr/loisirs/billard",
-    image: "/images/univers/billard.png",
-  },
-];
+import { useParams } from "next/navigation";
 
 export default function UniversSection() {
+  const params = useParams<{ locale?: string }>();
+  const locale = params?.locale ?? "fr";
+
+  const univers = [
+    {
+      title: "Spa & Spa de nage",
+      href: `/${locale}/bien-etre/spa`,
+      image: "/images/univers/spa-spa-de-nage.png",
+    },
+    {
+      title: "Sauna",
+      href: `/${locale}/bien-etre/sauna`,
+      image: "/images/univers/sauna.png",
+    },
+    {
+      title: "Baby-foot",
+      href: `/${locale}/loisirs/baby-foot`,
+      image: "/images/univers/baby-foot.png",
+    },
+    {
+      title: "Billard",
+      href: `/${locale}/loisirs/billard`,
+      image: "/images/univers/billard.png",
+    },
+  ];
+
   return (
     <section className="bg-[#f7f4ef] py-24">
       <div className="mx-auto max-w-7xl px-6">

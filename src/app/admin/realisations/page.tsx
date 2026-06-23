@@ -40,6 +40,7 @@ export default async function AdminRealisationsPage() {
 
     revalidatePath("/admin/realisations");
     revalidatePath("/fr/realisations");
+    revalidatePath("/en/realisations");
   }
 
   const { data: realisations, error } = await supabase

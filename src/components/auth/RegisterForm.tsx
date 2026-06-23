@@ -1,10 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { useParams } from "next/navigation";
 
 import { register } from "@/actions/auth/register";
 
 export default function RegisterForm() {
+  const params = useParams<{ locale?: string }>();
+  const locale = params?.locale ?? "fr";
   const [error, setError] = useState("");
 
   return (
@@ -18,6 +21,7 @@ export default function RegisterForm() {
       }}
       className="space-y-4"
     >
+      <input type="hidden" name="locale" value={locale} />
       <input
         name="email"
         type="email"

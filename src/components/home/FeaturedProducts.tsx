@@ -5,39 +5,43 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
-
-const products = [
-  {
-    title: "Spa & Spa de nage",
-    category: "Bien-être",
-    price: "Sur devis",
-    href: "/fr/bien-etre",
-    image: "/images/univers/spa-spa-de-nage.png",
-  },
-  {
-    title: "Sauna",
-    category: "Bien-être",
-    price: "Sur devis",
-    href: "/fr/bien-etre",
-    image: "/images/univers/sauna.png",
-  },
-  {
-    title: "Baby-foot",
-    category: "Loisirs",
-    price: "Sur devis",
-    href: "/fr/loisirs",
-    image: "/images/univers/baby-foot.png",
-  },
-  {
-    title: "Billard",
-    category: "Loisirs",
-    price: "Sur devis",
-    href: "/fr/loisirs",
-    image: "/images/univers/billard.png",
-  },
-];
+import { useParams } from "next/navigation";
 
 export default function FeaturedProducts() {
+  const params = useParams<{ locale?: string }>();
+  const locale = params?.locale ?? "fr";
+
+  const products = [
+    {
+      title: "Spa & Spa de nage",
+      category: "Bien-être",
+      price: "Sur devis",
+      href: `/${locale}/bien-etre`,
+      image: "/images/univers/spa-spa-de-nage.png",
+    },
+    {
+      title: "Sauna",
+      category: "Bien-être",
+      price: "Sur devis",
+      href: `/${locale}/bien-etre`,
+      image: "/images/univers/sauna.png",
+    },
+    {
+      title: "Baby-foot",
+      category: "Loisirs",
+      price: "Sur devis",
+      href: `/${locale}/loisirs`,
+      image: "/images/univers/baby-foot.png",
+    },
+    {
+      title: "Billard",
+      category: "Loisirs",
+      price: "Sur devis",
+      href: `/${locale}/loisirs`,
+      image: "/images/univers/billard.png",
+    },
+  ];
+
   return (
     <section className="bg-[#f7f4ef] py-24">
       <div className="mx-auto max-w-7xl px-6">
