@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getLocale } from "next-intl/server";
 import { ArrowRight, Dumbbell, ShieldCheck, Target } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -9,8 +8,12 @@ export const metadata: Metadata = {
     "Découvrez nos équipements fitness premium pour créer un espace d’entraînement confortable et performant à domicile.",
 };
 
-export default async function FitnessPage() {
-  const locale = await getLocale();
+type Props = {
+  params: Promise<{ locale: string }>;
+};
+
+export default async function FitnessPage({ params }: Props) {
+  const { locale } = await params;
 
   return (
     <main className="bg-[#f7f4ee] text-[#181512]">

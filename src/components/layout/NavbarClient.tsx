@@ -17,7 +17,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useLocale } from "next-intl";
+import { useParams } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
@@ -118,7 +118,8 @@ function TopBarServiceItem({ item }: { item: TopBarItem }) {
 export default function NavbarClient({
   initialIsAuthenticated,
 }: NavbarClientProps) {
-  const locale = useLocale();
+  const params = useParams<{ locale?: string }>();
+  const locale = params?.locale ?? "fr";
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [cartCount, setCartCount] = useState(0);
   const [isAuthenticated, setIsAuthenticated] = useState(

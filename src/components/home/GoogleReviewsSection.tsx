@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { getLocale } from "next-intl/server";
 import { BadgeCheck, Star } from "lucide-react";
 
 const reviewsRowOne = [
@@ -128,9 +127,7 @@ function ReviewsMarquee({
   );
 }
 
-export default async function GoogleReviewsSection() {
-  const locale = await getLocale();
-
+export default function GoogleReviewsSection({ locale }: { locale: string }) {
   return (
     <section className="relative overflow-hidden bg-[#eeeeed] py-20">
       <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-32 bg-gradient-to-r from-[#eeeeed] to-transparent" />

@@ -6,11 +6,9 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import Link from "next/link";
-import { getLocale } from "next-intl/server";
 import type { ReactNode } from "react";
 
-export default async function Footer() {
-  const locale = await getLocale();
+export default function Footer({ locale }: { locale: string }) {
 
   const shopLinks = [
     { label: "Spa", href: `/${locale}/bien-etre/spa` },

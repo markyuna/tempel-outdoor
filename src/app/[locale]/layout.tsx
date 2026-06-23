@@ -9,15 +9,18 @@ import Navbar from "@/components/layout/Navbar";
 
 type Props = {
   children: ReactNode;
+  params: Promise<{ locale: string }>;
 };
 
-export default function LocaleLayout({ children }: Props) {
+export default async function LocaleLayout({ children, params }: Props) {
+  const { locale } = await params;
+
   return (
     <>
       <AuthIdleLogout />
       <Navbar />
       <main>{children}</main>
-      <Footer />
+      <Footer locale={locale} />
       <ChatWidget />
     </>
   );

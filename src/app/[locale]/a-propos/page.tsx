@@ -1,6 +1,5 @@
 import { Waves, Flame, Trophy, Utensils } from "lucide-react";
 import Link from "next/link";
-import { getLocale } from "next-intl/server";
 
 const univers = [
   {
@@ -29,8 +28,12 @@ const univers = [
   },
 ];
 
-export default async function AboutPage() {
-  const locale = await getLocale();
+type Props = {
+  params: Promise<{ locale: string }>;
+};
+
+export default async function AboutPage({ params }: Props) {
+  const { locale } = await params;
 
   return (
     <main className="bg-[#f7f4ee] text-[#181512]">

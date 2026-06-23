@@ -18,7 +18,7 @@ export default async function HomePage({ params }: Props) {
 
   return (
     <main className="bg-[#f7f4ee] text-black">
-      <HeroSection />
+      <HeroSection locale={locale} />
 
       <UniversSection />
 
@@ -51,7 +51,7 @@ export default async function HomePage({ params }: Props) {
         </div>
       </section>
 
-      <GoogleReviewsSection />
+      <GoogleReviewsSection locale={locale} />
     </main>
   );
 }

@@ -1,11 +1,9 @@
 // src/components/home/HeroSection.tsx
 
 import Link from "next/link";
-import { getLocale } from "next-intl/server";
 import { ArrowRight } from "lucide-react";
 
-export default async function HeroSection() {
-  const locale = await getLocale();
+export default function HeroSection({ locale }: { locale: string }) {
   return (
     <section className="relative flex min-h-screen items-center overflow-hidden text-white">
       <video
