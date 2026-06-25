@@ -3,10 +3,12 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Bot,
   CheckCircle2,
+  ExternalLink,
   Loader2,
   Mail,
   MessageCircle,
@@ -16,16 +18,22 @@ import {
   X,
 } from "lucide-react";
 
-import {
-  chatSuggestions,
-  getChatAnswer,
-  shouldOpenContactForm,
-} from "@/lib/chat/knowledge";
+import { chatSuggestions } from "@/lib/chat/knowledge";
+import type { ChatApiResponse, ChatProduct } from "@/app/api/chat/route";
+
+const CATEGORY_LABELS: Record<string, string> = {
+  spa: "Spa",
+  sauna: "Sauna",
+  "baby-foot": "Baby-foot",
+  billard: "Billard",
+  fitness: "Fitness",
+};
 
 type ChatMessage = {
   id: string;
   role: "bot" | "user";
   content: string;
+  products?: ChatProduct[];
 };
 
 type ContactFormState = {
@@ -40,7 +48,7 @@ const initialMessages: ChatMessage[] = [
     id: "welcome",
     role: "bot",
     content:
-      "Bonjour 👋 Je suis l’assistant Tempel Outdoor. Je peux vous aider sur la livraison, le paiement, les devis ou vous mettre en contact avec un conseiller.",
+      "Bonjour 👋 Je suis l'assistant Tempel Outdoor. Posez-moi une question sur nos produits, la livraison, le paiement ou les devis.",
   },
 ];
 
@@ -48,12 +56,68 @@ function createMessageId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
+function formatPrice(price: number) {
+  return new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency: "EUR",
+    maximumFractionDigits: 0,
+  }).format(price);
+}
+
+function ProductCard({
+  product,
+  locale,
+}: {
+  product: ChatProduct;
+  locale: string;
+}) {
+  return (
+    <Link
+      href={`/${locale}/products/${product.slug}`}
+      className="group flex gap-3 overflow-hidden rounded-2xl border border-[#d7b86e]/25 bg-black/40 p-3 backdrop-blur-md transition hover:border-[#f1d37b]/55 hover:bg-black/55"
+    >
+      {product.image ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={product.image}
+          alt={product.name}
+          className="h-[3.75rem] w-[3.75rem] shrink-0 rounded-xl object-cover"
+        />
+      ) : (
+        <div className="flex h-[3.75rem] w-[3.75rem] shrink-0 items-center justify-center rounded-xl bg-[#d7b86e]/10">
+          <Bot className="h-5 w-5 text-[#d7b86e]" />
+        </div>
+      )}
+
+      <div className="min-w-0 flex-1">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-[#f6df9c]/55">
+          {CATEGORY_LABELS[product.category] ?? product.category}
+        </span>
+        <p className="truncate text-sm font-semibold text-white">
+          {product.name}
+        </p>
+        <div className="mt-1 flex items-center justify-between gap-2">
+          <p className="text-sm font-semibold text-[#f6df9c]">
+            {formatPrice(product.price)}
+          </p>
+          <span className="flex items-center gap-1 text-[10px] font-semibold text-white/40 transition group-hover:text-[#f6df9c]/70">
+            Voir
+            <ExternalLink className="h-2.5 w-2.5" />
+          </span>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
 export default function ChatWidget() {
   const pathname = usePathname();
+  const locale = pathname.split("/")[1] || "fr";
 
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [inputValue, setInputValue] = useState("");
+  const [isBotTyping, setIsBotTyping] = useState(false);
   const [showContactForm, setShowContactForm] = useState(false);
   const [isSendingContact, setIsSendingContact] = useState(false);
   const [contactSent, setContactSent] = useState(false);
@@ -124,7 +188,7 @@ export default function ChatWidget() {
       behavior: "smooth",
       block: "end",
     });
-  }, [messages, showContactForm, contactSent]);
+  }, [messages, showContactForm, contactSent, isBotTyping]);
 
   useEffect(() => {
     if (!historyLoaded) {
@@ -142,9 +206,7 @@ export default function ChatWidget() {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            messages,
-          }),
+          body: JSON.stringify({ messages }),
         });
       } catch (error) {
         console.error("Erreur sauvegarde historique chatbot:", error);
@@ -158,47 +220,52 @@ export default function ChatWidget() {
     };
   }, [messages, historyLoaded]);
 
-  function addMessage(role: ChatMessage["role"], content: string) {
-    setMessages((currentMessages) => [
-      ...currentMessages,
-      {
-        id: createMessageId(),
-        role,
-        content,
-      },
-    ]);
-  }
-
   function openContactFormWithMessage(message: string) {
-    setContactForm((currentForm) => ({
-      ...currentForm,
-      message,
-    }));
-
+    setContactForm((current) => ({ ...current, message }));
     setShowContactForm(true);
     setContactSent(false);
   }
 
-  function handleBotResponse(question: string) {
-    const answer = getChatAnswer(question);
-    const mustOpenContactForm = shouldOpenContactForm(question);
+  async function handleBotResponse(question: string) {
+    setIsBotTyping(true);
 
-    if (answer) {
-      addMessage("bot", answer);
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question }),
+      });
 
-      if (mustOpenContactForm) {
-        openContactFormWithMessage(question);
+      const data: ChatApiResponse = await response.json();
+
+      if (data.answer) {
+        setMessages((current) => [
+          ...current,
+          {
+            id: createMessageId(),
+            role: "bot",
+            content: data.answer!,
+            products: data.products,
+          },
+        ]);
       }
 
-      return;
+      if (data.action === "contact") {
+        openContactFormWithMessage(question);
+      }
+    } catch {
+      setMessages((current) => [
+        ...current,
+        {
+          id: createMessageId(),
+          role: "bot",
+          content:
+            "Une erreur est survenue. Veuillez réessayer ou contacter un conseiller.",
+        },
+      ]);
+    } finally {
+      setIsBotTyping(false);
     }
-
-    addMessage(
-      "bot",
-      "Je n’ai pas toutes les informations pour répondre précisément à cette question. Laissez vos coordonnées et un conseiller Tempel Outdoor vous recontactera rapidement."
-    );
-
-    openContactFormWithMessage(question);
   }
 
   function handleSubmitMessage(event: FormEvent<HTMLFormElement>) {
@@ -206,37 +273,53 @@ export default function ChatWidget() {
 
     const cleanMessage = inputValue.trim();
 
-    if (!cleanMessage) {
+    if (!cleanMessage || isBotTyping) {
       return;
     }
 
     lastUserQuestionRef.current = cleanMessage;
 
-    addMessage("user", cleanMessage);
+    setMessages((current) => [
+      ...current,
+      { id: createMessageId(), role: "user", content: cleanMessage },
+    ]);
     setInputValue("");
 
     window.setTimeout(() => {
       handleBotResponse(cleanMessage);
-    }, 250);
+    }, 200);
   }
 
-  function handleSuggestionClick(value: string, action?: "message" | "contact") {
+  function handleSuggestionClick(
+    value: string,
+    action?: "message" | "contact"
+  ) {
     lastUserQuestionRef.current = value;
 
-    addMessage("user", value);
+    setMessages((current) => [
+      ...current,
+      { id: createMessageId(), role: "user", content: value },
+    ]);
+
+    if (action === "contact") {
+      window.setTimeout(() => {
+        setMessages((current) => [
+          ...current,
+          {
+            id: createMessageId(),
+            role: "bot",
+            content:
+              "Bien sûr. Laissez vos coordonnées et un conseiller Tempel Outdoor vous recontactera rapidement.",
+          },
+        ]);
+        openContactFormWithMessage(value);
+      }, 200);
+      return;
+    }
 
     window.setTimeout(() => {
-      if (action === "contact") {
-        addMessage(
-          "bot",
-          "Bien sûr. Laissez vos coordonnées et un conseiller Tempel Outdoor vous recontactera rapidement."
-        );
-        openContactFormWithMessage(value);
-        return;
-      }
-
       handleBotResponse(value);
-    }, 250);
+    }, 200);
   }
 
   async function handleContactSubmit(event: FormEvent<HTMLFormElement>) {
@@ -248,9 +331,7 @@ export default function ChatWidget() {
     try {
       const response = await fetch("/api/contact-request", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: contactForm.name,
           email: contactForm.email,
@@ -266,7 +347,7 @@ export default function ChatWidget() {
       if (!response.ok) {
         throw new Error(
           result?.error ??
-            "Une erreur est survenue pendant l’envoi de votre demande."
+            "Une erreur est survenue pendant l'envoi de votre demande."
         );
       }
 
@@ -276,7 +357,7 @@ export default function ChatWidget() {
       setContactError(
         error instanceof Error
           ? error.message
-          : "Une erreur est survenue pendant l’envoi de votre demande."
+          : "Une erreur est survenue pendant l'envoi de votre demande."
       );
     } finally {
       setIsSendingContact(false);
@@ -295,7 +376,7 @@ export default function ChatWidget() {
         <span className="relative flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#f1d37b] to-[#b8913f] text-black shadow-[0_0_22px_rgba(215,184,110,0.35)]">
           <MessageCircle className="h-4 w-4" />
         </span>
-        <span className="relative hidden sm:inline">Besoin d’aide ?</span>
+        <span className="relative hidden sm:inline">Besoin d&apos;aide ?</span>
       </button>
 
       {isOpen ? (
@@ -303,6 +384,7 @@ export default function ChatWidget() {
           <div className="pointer-events-none absolute inset-0 rounded-[2rem] bg-[radial-gradient(circle_at_top_left,rgba(215,184,110,0.24),transparent_36%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.08),transparent_34%)]" />
           <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-[#f4d98a]/80 to-transparent" />
 
+          {/* Header */}
           <div className="relative flex shrink-0 items-center justify-between border-b border-[#d7b86e]/20 bg-black/20 px-5 py-4 backdrop-blur-xl">
             <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-full border border-[#ffe6a3]/35 bg-gradient-to-br from-[#f4d98a] via-[#d7b86e] to-[#a77d2f] text-black shadow-[0_0_28px_rgba(215,184,110,0.35)]">
@@ -329,12 +411,13 @@ export default function ChatWidget() {
             </button>
           </div>
 
+          {/* Messages */}
           <div className="chatbot-scroll relative flex-1 space-y-4 overflow-y-auto px-4 py-5">
             {messages.map((message) => (
               <div
                 key={message.id}
-                className={`flex ${
-                  message.role === "user" ? "justify-end" : "justify-start"
+                className={`flex flex-col gap-2 ${
+                  message.role === "user" ? "items-end" : "items-start"
                 }`}
               >
                 <div
@@ -346,20 +429,39 @@ export default function ChatWidget() {
                 >
                   {message.content}
                 </div>
+
+                {message.products && message.products.length > 0 ? (
+                  <div className="w-full max-w-[92%] space-y-2">
+                    {message.products.map((product) => (
+                      <ProductCard
+                        key={product.id}
+                        product={product}
+                        locale={locale}
+                      />
+                    ))}
+                  </div>
+                ) : null}
               </div>
             ))}
 
-            {!showContactForm && !contactSent ? (
+            {isBotTyping ? (
+              <div className="flex justify-start">
+                <div className="flex items-center gap-1.5 rounded-[1.45rem] border border-white/10 bg-white/[0.08] px-4 py-3 shadow-black/20 backdrop-blur-md">
+                  <span className="h-2 w-2 animate-bounce rounded-full bg-[#d7b86e] [animation-delay:0ms]" />
+                  <span className="h-2 w-2 animate-bounce rounded-full bg-[#d7b86e] [animation-delay:150ms]" />
+                  <span className="h-2 w-2 animate-bounce rounded-full bg-[#d7b86e] [animation-delay:300ms]" />
+                </div>
+              </div>
+            ) : null}
+
+            {!showContactForm && !contactSent && !isBotTyping ? (
               <div className="grid grid-cols-2 gap-2 pt-1">
                 {chatSuggestions.map((suggestion) => (
                   <button
                     key={suggestion.label}
                     type="button"
                     onClick={() =>
-                      handleSuggestionClick(
-                        suggestion.value,
-                        suggestion.action
-                      )
+                      handleSuggestionClick(suggestion.value, suggestion.action)
                     }
                     className="rounded-2xl border border-[#d7b86e]/20 bg-white/[0.055] px-3 py-2 text-left text-xs font-medium text-white/70 shadow-sm backdrop-blur-md transition hover:border-[#f1d37b]/60 hover:bg-[#d7b86e]/12 hover:text-[#ffe8a8]"
                   >
@@ -388,8 +490,8 @@ export default function ChatWidget() {
                   <input
                     value={contactForm.name}
                     onChange={(event) =>
-                      setContactForm((currentForm) => ({
-                        ...currentForm,
+                      setContactForm((current) => ({
+                        ...current,
                         name: event.target.value,
                       }))
                     }
@@ -405,8 +507,8 @@ export default function ChatWidget() {
                     type="email"
                     value={contactForm.email}
                     onChange={(event) =>
-                      setContactForm((currentForm) => ({
-                        ...currentForm,
+                      setContactForm((current) => ({
+                        ...current,
                         email: event.target.value,
                       }))
                     }
@@ -421,8 +523,8 @@ export default function ChatWidget() {
                   <input
                     value={contactForm.phone}
                     onChange={(event) =>
-                      setContactForm((currentForm) => ({
-                        ...currentForm,
+                      setContactForm((current) => ({
+                        ...current,
                         phone: event.target.value,
                       }))
                     }
@@ -434,8 +536,8 @@ export default function ChatWidget() {
                 <textarea
                   value={contactForm.message}
                   onChange={(event) =>
-                    setContactForm((currentForm) => ({
-                      ...currentForm,
+                    setContactForm((current) => ({
+                      ...current,
                       message: event.target.value,
                     }))
                   }
@@ -488,6 +590,7 @@ export default function ChatWidget() {
             <div ref={messagesEndRef} />
           </div>
 
+          {/* Input */}
           <form
             onSubmit={handleSubmitMessage}
             className="relative shrink-0 border-t border-[#d7b86e]/20 bg-black/25 p-4 backdrop-blur-xl"
@@ -496,16 +599,22 @@ export default function ChatWidget() {
               <input
                 value={inputValue}
                 onChange={(event) => setInputValue(event.target.value)}
-                placeholder="Écrivez votre question..."
-                className="min-w-0 flex-1 bg-transparent px-2 text-sm text-white outline-none placeholder:text-white/35"
+                placeholder="Posez votre question..."
+                disabled={isBotTyping}
+                className="min-w-0 flex-1 bg-transparent px-2 text-sm text-white outline-none placeholder:text-white/35 disabled:opacity-50"
               />
 
               <button
                 type="submit"
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#ffe6a3]/35 bg-gradient-to-br from-[#f4d98a] to-[#c9a04e] text-black shadow-[0_0_22px_rgba(215,184,110,0.25)] transition hover:scale-105 hover:from-[#ffe6a3] hover:to-[#d7b86e]"
+                disabled={isBotTyping || !inputValue.trim()}
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#ffe6a3]/35 bg-gradient-to-br from-[#f4d98a] to-[#c9a04e] text-black shadow-[0_0_22px_rgba(215,184,110,0.25)] transition hover:scale-105 hover:from-[#ffe6a3] hover:to-[#d7b86e] disabled:cursor-not-allowed disabled:opacity-50"
                 aria-label="Envoyer le message"
               >
-                <Send className="h-4 w-4" />
+                {isBotTyping ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
               </button>
             </div>
           </form>
