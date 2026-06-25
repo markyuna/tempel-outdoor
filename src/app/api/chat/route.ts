@@ -40,6 +40,14 @@ const STOPWORDS = new Set([
   "aimeriez", "souhaite", "cherche", "cherchez", "avoir", "avez",
 ]);
 
+function stemWord(word: string): string {
+  // Basic French/English plural: strip trailing 's' for words longer than 4 chars
+  if (word.length > 4 && word.endsWith("s") && !word.endsWith("ss")) {
+    return word.slice(0, -1);
+  }
+  return word;
+}
+
 function extractKeywords(question: string): string[] {
   return question
     .toLowerCase()
@@ -48,6 +56,7 @@ function extractKeywords(question: string): string[] {
     .replace(/[^a-z0-9\s-]/g, " ")
     .split(/\s+/)
     .filter((word) => word.length > 2 && !STOPWORDS.has(word))
+    .map(stemWord)
     .slice(0, 4);
 }
 

@@ -48,7 +48,7 @@ const initialMessages: ChatMessage[] = [
     id: "welcome",
     role: "bot",
     content:
-      "Bonjour 👋 Je suis l'assistant Tempel Outdoor. Posez-moi une question sur nos produits, la livraison, le paiement ou les devis.",
+      "Bonjour 👋 Je suis l'assistant Tempel Outdoor. Recherchez un produit par nom ou modèle, ou posez-moi une question sur la livraison, le paiement ou les devis.",
   },
 ];
 
