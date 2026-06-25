@@ -41,7 +41,6 @@ const STOPWORDS = new Set([
 ]);
 
 function stemWord(word: string): string {
-  // Basic French/English plural: strip trailing 's' for words longer than 4 chars
   if (word.length > 4 && word.endsWith("s") && !word.endsWith("ss")) {
     return word.slice(0, -1);
   }
@@ -58,19 +57,6 @@ function extractKeywords(question: string): string[] {
     .filter((word) => word.length > 2 && !STOPWORDS.has(word))
     .map(stemWord)
     .slice(0, 4);
-}
-
-function getImage(
-  media:
-    | { url: string; is_featured: boolean | null; type: string }[]
-    | null
-): string | null {
-  if (!media || media.length === 0) return null;
-  return (
-    media.find((m) => m.type === "image" && m.is_featured)?.url ??
-    media.find((m) => m.type === "image")?.url ??
-    null
-  );
 }
 
 export async function POST(request: NextRequest) {
@@ -106,40 +92,40 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  // 2. Product search
+  // 2. Product search via accent-insensitive RPC
   const keywords = extractKeywords(question);
 
   if (keywords.length > 0) {
-    const orConditions = keywords
-      .flatMap((kw) => [
-        `name.ilike.%${kw}%`,
-        `short_description.ilike.%${kw}%`,
-        `category.ilike.%${kw}%`,
-      ])
-      .join(",");
+    const { data: rows, error } = await supabaseAdmin.rpc(
+      "search_products_unaccent",
+      {
+        search_keywords: keywords,
+        max_results: 3,
+      }
+    );
 
-    const { data: products } = await supabaseAdmin
-      .from("products")
-      .select(
-        "id, name, slug, price, category, universe, short_description, product_media(url, is_featured, type)"
-      )
-      .eq("status", "active")
-      .or(orConditions)
-      .limit(3);
-
-    if (products && products.length > 0) {
-      const results: ChatProduct[] = products.map((p) => ({
-        id: p.id,
-        name: p.name,
-        slug: p.slug,
-        price: p.price,
-        category: p.category,
-        universe: p.universe,
-        short_description: p.short_description,
-        image: getImage(
-          Array.isArray(p.product_media) ? p.product_media : null
-        ),
-      }));
+    if (!error && rows && rows.length > 0) {
+      const results: ChatProduct[] = rows.map(
+        (r: {
+          id: string;
+          name: string;
+          slug: string;
+          price: number;
+          category: string;
+          universe: string;
+          short_description: string | null;
+          image_url: string | null;
+        }) => ({
+          id: r.id,
+          name: r.name,
+          slug: r.slug,
+          price: r.price,
+          category: r.category,
+          universe: r.universe,
+          short_description: r.short_description,
+          image: r.image_url,
+        })
+      );
 
       return NextResponse.json<ChatApiResponse>({
         answer:
