@@ -1,7 +1,7 @@
 // src/app/admin/customers/page.tsx
 
 import Link from "next/link";
-import { ArrowLeft, Eye, Mail, Phone, UserRound } from "lucide-react";
+import { Eye, Mail, Phone, UserRound } from "lucide-react";
 
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
@@ -70,15 +70,7 @@ export default async function AdminCustomersPage() {
   return (
     <main className="min-h-screen bg-[#f7f4ee] px-6 py-10">
       <section className="mx-auto max-w-7xl">
-        <Link
-          href="/admin"
-          className="inline-flex items-center gap-2 text-sm font-semibold text-neutral-600 transition hover:text-black"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Retour au dashboard
-        </Link>
-
-        <div className="mt-8 flex flex-col justify-between gap-4 md:flex-row md:items-end">
+        <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div>
             <p className="mb-2 text-xs font-semibold uppercase tracking-[0.25em] text-[#9c7b4f]">
               Administration

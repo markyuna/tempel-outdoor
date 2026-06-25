@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
-import { LayoutDashboard, Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
 
@@ -58,14 +58,6 @@ export default async function AdminRealisationsPage() {
       <div className="mx-auto max-w-6xl">
         <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-center">
           <div>
-            <Link
-              href="/admin"
-              className="mb-4 inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-medium transition hover:bg-black hover:text-white"
-            >
-              <LayoutDashboard className="h-4 w-4" />
-              Dashboard
-            </Link>
-
             <p className="text-sm uppercase tracking-[0.3em] text-black/50">
               Admin
             </p>

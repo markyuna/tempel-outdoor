@@ -1,5 +1,12 @@
 import type { ReactNode } from "react";
 
+import AdminNavbar from "@/components/admin/AdminNavbar";
+
 export default function AdminLayout({ children }: { children: ReactNode }) {
-  return <main className="min-h-screen bg-[#f7f4ee]">{children}</main>;
+  return (
+    <div className="min-h-screen bg-[#f7f4ee]">
+      <AdminNavbar />
+      {children}
+    </div>
+  );
 }
