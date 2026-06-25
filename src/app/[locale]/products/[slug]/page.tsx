@@ -10,6 +10,8 @@ import ProductBuyBox from "@/components/products/ProductBuyBox";
 import ProductPurchaseSection from "@/components/products/ProductPurchaseSection";
 import ProductSpecs from "@/components/products/ProductSpecs";
 import ProductStoryVideo from "@/components/products/ProductStoryVideo";
+import JsonLd from "@/components/seo/JsonLd";
+import { buildAlternates, buildOg, SITE_NAME, SITE_URL } from "@/lib/seo";
 import { createClient } from "@/lib/supabase/server";
 
 type Props = {
@@ -185,19 +187,36 @@ async function getInitialIsFavorite(productId: string) {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { slug } = await params;
+  const { slug, locale } = await params;
   const product = await getProduct(slug);
 
   if (!product) {
     return {
-      title: "Produit introuvable | Tempel Outdoor",
+      title: "Produit introuvable",
       description: "Ce produit n'est pas disponible.",
+      robots: { index: false },
     };
   }
 
+  const title = product.name;
+  const description =
+    product.short_description ||
+    product.description?.slice(0, 155) ||
+    `${product.name} — Tempel Outdoor`;
+
+  const featuredImage = getFeaturedImage(product.product_media ?? []);
+
   return {
-    title: `${product.name} | Tempel Outdoor`,
-    description: product.short_description || product.description || "",
+    title,
+    description,
+    alternates: buildAlternates(locale, `/products/${slug}`),
+    openGraph: buildOg({
+      title,
+      description,
+      locale,
+      type: "article",
+      ...(featuredImage ? { image: featuredImage } : {}),
+    }),
   };
 }
 
@@ -416,8 +435,29 @@ export default async function ProductPage({ params }: Props) {
   const storyVideoUrl =
     CATEGORY_VIDEOS[product.category] ?? "/videos/tempel-outdoor.mp4";
 
+  const productSchema = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    description: product.short_description || product.description || "",
+    url: `${SITE_URL}/${locale}/products/${product.slug}`,
+    brand: { "@type": "Brand", name: SITE_NAME },
+    ...(featuredImage ? { image: [featuredImage] } : {}),
+    offers: {
+      "@type": "Offer",
+      price: product.price.toString(),
+      priceCurrency: "EUR",
+      availability:
+        product.stock > 0
+          ? "https://schema.org/InStock"
+          : "https://schema.org/OutOfStock",
+      seller: { "@type": "Organization", name: SITE_NAME },
+    },
+  };
+
   return (
     <main className="min-h-screen bg-[#f7f4ee] text-[#181512]">
+      <JsonLd data={productSchema} />
       <section className="px-6 pb-20 pt-4">
         <div className="mx-auto max-w-7xl">
           <Link

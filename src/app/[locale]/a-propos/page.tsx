@@ -1,5 +1,27 @@
+import type { Metadata } from "next";
 import { Waves, Flame, Trophy, Utensils } from "lucide-react";
 import Link from "next/link";
+
+import { buildAlternates, buildOg } from "@/lib/seo";
+
+type MetaProps = {
+  params: Promise<{ locale: string }>;
+};
+
+export async function generateMetadata({ params }: MetaProps): Promise<Metadata> {
+  const { locale } = await params;
+
+  const title = "À propos de Tempel Outdoor";
+  const description =
+    "Tempel Outdoor sélectionne des équipements outdoor haut de gamme pour transformer vos extérieurs en espaces de détente, de partage et d'élégance.";
+
+  return {
+    title,
+    description,
+    alternates: buildAlternates(locale, "/a-propos"),
+    openGraph: buildOg({ title, description, locale }),
+  };
+}
 
 const univers = [
   {

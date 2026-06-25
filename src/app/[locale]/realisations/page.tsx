@@ -1,7 +1,29 @@
 // src/app/[locale]/realisations/page.tsx
 
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+
+import { buildAlternates, buildOg } from "@/lib/seo";
+
+type MetaProps = {
+  params: Promise<{ locale: string }>;
+};
+
+export async function generateMetadata({ params }: MetaProps): Promise<Metadata> {
+  const { locale } = await params;
+
+  const title = "Réalisations — Installations clients Tempel Outdoor";
+  const description =
+    "Découvrez nos réalisations : spas, saunas, billards et aménagements extérieurs haut de gamme installés chez nos clients partout en France.";
+
+  return {
+    title,
+    description,
+    alternates: buildAlternates(locale, "/realisations"),
+    openGraph: buildOg({ title, description, locale }),
+  };
+}
 
 import BeforeAfterSlider from "@/components/realisations/BeforeAfterSlider";
 import { createClient } from "@/lib/supabase/server";

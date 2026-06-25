@@ -10,11 +10,26 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
-export const metadata: Metadata = {
-  title: "Contact | Tempel Outdoor",
-  description:
-    "Contactez Tempel Outdoor pour un conseil personnalisé sur nos spas, saunas, billards, baby-foot et équipements fitness premium.",
+import { buildAlternates, buildOg } from "@/lib/seo";
+
+type ContactProps = {
+  params: Promise<{ locale: string }>;
 };
+
+export async function generateMetadata({ params }: ContactProps): Promise<Metadata> {
+  const { locale } = await params;
+
+  const title = "Contact";
+  const description =
+    "Contactez Tempel Outdoor pour un conseil personnalisé sur nos spas, saunas, billards, baby-foot et équipements fitness premium.";
+
+  return {
+    title,
+    description,
+    alternates: buildAlternates(locale, "/contact"),
+    openGraph: buildOg({ title, description, locale }),
+  };
+}
 
 const contactCards = [
   {
