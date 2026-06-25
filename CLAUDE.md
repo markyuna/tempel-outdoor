@@ -29,7 +29,7 @@ No test runner is configured.
 
 Public pages live under `src/app/[locale]/` and are always locale-prefixed (`/fr/...`, `/en/...`). The admin dashboard lives under `src/app/admin/` with no locale prefix. API routes are at `src/app/api/`.
 
-The middleware entry point is `src/middleware.ts`, which delegates to `src/proxy.ts`. That file:
+The middleware entry point is `src/proxy.ts` (Next.js 16 supports a configurable middleware file path — there is no `middleware.ts`). It:
 - Bypasses locale handling for `/admin/*`
 - Strips locale prefix if someone hits `/fr/admin/*` (redirects to `/admin/*`)
 - Runs next-intl middleware for all public routes
@@ -81,3 +81,5 @@ Stripe and Resend keys are also required for payments and email.
 - **Path alias**: `@/*` maps to `src/*`.
 - Admin product forms use `@dnd-kit` for reordering variants and spec sections — preserve that pattern when editing those forms.
 - PDF quote generation is triggered via `POST /api/orders/[id]/generate-devis` and uses `pdf-lib` in `src/lib/devis/generateDevisPdf.ts`.
+- The design language throughout is **dark premium glass**: dark semi-transparent backgrounds (`bg-black/75`, `backdrop-blur-xl`), gold accents (`#d7b86e`, `#f4d98a`), subtle gradient borders. Follow this in any new UI.
+- `src/components/chat/ChatWidget.tsx` is a rule-based chatbot (no LLM). Answers come from keyword matching in `src/lib/chat/knowledge.ts`. Chat history is persisted per-session via `/api/chat-history`.
