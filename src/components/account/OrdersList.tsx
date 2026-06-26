@@ -69,69 +69,59 @@ function formatDate(value: string) {
 }
 
 export default function OrdersList({ locale = "fr", orders }: Props) {
-  if (!orders.length) {
-    return (
-      <div className="rounded-3xl border bg-white p-8">
-        <h3 className="text-xl font-semibold">Mes commandes</h3>
+  return (
+    <div className="rounded-[2rem] border border-black/10 bg-white p-6 shadow-sm">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-[#181512]">Mes commandes</h2>
 
-        <p className="mt-4 text-neutral-500">
+        {orders.length > 0 && (
+          <span className="text-sm text-neutral-500">
+            {orders.length} commande{orders.length > 1 ? "s" : ""}
+          </span>
+        )}
+      </div>
+
+      {orders.length === 0 ? (
+        <p className="mt-4 text-sm text-neutral-500">
           Vous n&apos;avez encore passé aucune commande.
         </p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="rounded-3xl border bg-white p-8">
-      <div className="flex items-center justify-between">
-        <h3 className="text-xl font-semibold">Mes commandes</h3>
-
-        <span className="text-sm text-neutral-500">
-          {orders.length} commande{orders.length > 1 ? "s" : ""}
-        </span>
-      </div>
-
-      <div className="mt-6 space-y-4">
-        {orders.map((order) => (
-          <Link
-            key={order.id}
-            href={`/${locale}/mon-compte/commandes/${order.id}`}
-            className="group block rounded-2xl border bg-[#fbfaf7] p-5 transition hover:border-[#9c7b4f]/50 hover:bg-white hover:shadow-sm"
-          >
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div>
-                <p className="font-semibold text-[#181512]">
+      ) : (
+        <div className="mt-4 space-y-2">
+          {orders.map((order) => (
+            <Link
+              key={order.id}
+              href={`/${locale}/mon-compte/commandes/${order.id}`}
+              className="group flex items-center justify-between gap-4 rounded-2xl border border-black/10 bg-[#f7f4ee] px-4 py-3 transition hover:bg-white hover:shadow-sm"
+            >
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-[#181512]">
                   Commande #{order.id.slice(0, 8)}
                 </p>
 
-                <p className="mt-1 text-sm text-neutral-500">
+                <p className="mt-0.5 text-xs text-neutral-500">
                   {formatDate(order.created_at)}
                 </p>
               </div>
 
-              <div className="flex items-center justify-between gap-5 md:justify-end">
-                <div className="flex flex-col gap-3 md:items-end">
-                  <span
-                    className={`w-fit rounded-full px-3 py-1 text-xs font-medium ${getStatusColor(
-                      order.status
-                    )}`}
-                  >
-                    {getStatusLabel(order.status)}
-                  </span>
+              <div className="flex shrink-0 items-center gap-3">
+                <span
+                  className={`hidden rounded-full px-2.5 py-1 text-xs font-medium sm:inline-flex ${getStatusColor(order.status)}`}
+                >
+                  {getStatusLabel(order.status)}
+                </span>
 
-                  <p className="text-lg font-semibold text-[#181512]">
-                    {formatPrice(order.total)}
-                  </p>
-                </div>
+                <p className="text-sm font-semibold text-[#181512]">
+                  {formatPrice(order.total)}
+                </p>
 
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-[#181512] transition group-hover:bg-[#181512] group-hover:text-white">
-                  <ArrowRight className="h-4 w-4" />
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-[#181512] transition group-hover:bg-[#181512] group-hover:text-white">
+                  <ArrowRight className="h-3.5 w-3.5" />
                 </span>
               </div>
-            </div>
-          </Link>
-        ))}
-      </div>
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
