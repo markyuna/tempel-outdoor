@@ -2,13 +2,18 @@
 
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 // Until the domain is verified, Resend only allows sending to the address
 // registered in your Resend account. Change both values once tempel-outdoor.fr
 // is verified in the Resend dashboard.
 const FROM = "Tempel Outdoor <onboarding@resend.dev>";
 const ADMIN_EMAIL = process.env.ADMIN_NOTIFICATION_EMAIL ?? "";
+
+// Lazy initialization — avoids throwing at module load time during build
+function getResend(): Resend {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) throw new Error("RESEND_API_KEY is not set");
+  return new Resend(key);
+}
 
 export type OrderItem = {
   name: string;
@@ -192,7 +197,7 @@ export async function sendOrderNotification(
 </body>
 </html>`;
 
-  const { error } = await resend.emails.send({
+  const { error } = await getResend().emails.send({
     from: FROM,
     to: [ADMIN_EMAIL],
     subject: `Nouvelle commande ${ref} — ${fullName} (${formatPrice(data.total)})`,
@@ -309,7 +314,7 @@ export async function sendContactNotification(
 </body>
 </html>`;
 
-  const { error } = await resend.emails.send({
+  const { error } = await getResend().emails.send({
     from: FROM,
     to: [ADMIN_EMAIL],
     subject: `Nouvelle demande — ${data.name} (${sourceLabel})`,
