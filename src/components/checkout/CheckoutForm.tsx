@@ -69,8 +69,7 @@ type OrderResponse = {
   error?: string;
 };
 
-const CART_STORAGE_KEY = "tempel_cart";
-const CART_UPDATED_EVENT = "tempel-cart-updated";
+import { CART_STORAGE_KEY, CART_UPDATED_EVENT } from "@/lib/cart";
 
 const emptyForm: CustomerForm = {
   firstName: "",
@@ -632,8 +631,8 @@ export default function CheckoutForm({
         <aside className="h-fit rounded-[2rem] bg-white p-7 shadow-sm lg:sticky lg:top-28">
           <h2 className="text-2xl font-semibold">Résumé du panier</h2>
 
-          <p className="mt-2 text-sm font-medium text-emerald-600">
-            Livraison gratuite
+          <p className="mt-2 text-sm font-medium text-[#9c7b4f]">
+            Livraison sur devis
           </p>
 
           {cart.length === 0 ? (
@@ -699,7 +698,7 @@ export default function CheckoutForm({
 
                 <div className="mt-3 flex justify-between text-sm text-neutral-500">
                   <span>Livraison</span>
-                  <span>Gratuite</span>
+                  <span>Sur devis</span>
                 </div>
 
                 <div className="mt-6 flex justify-between text-lg font-semibold">
