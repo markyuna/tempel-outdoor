@@ -83,6 +83,7 @@ function getStatusLabel(status: string | null) {
     contacted: "Client contacté",
     quoted: "Devis envoyé",
     paid: "Payée",
+    in_production: "En fabrication",
     delivered: "Livrée",
     cancelled: "Annulée",
   };
@@ -96,6 +97,7 @@ function getStatusClasses(status: string | null) {
     contacted: "bg-purple-50 text-purple-700",
     quoted: "bg-[#f3ead6] text-[#7a5b1c]",
     paid: "bg-emerald-50 text-emerald-700",
+    in_production: "bg-amber-50 text-amber-700",
     delivered: "bg-emerald-50 text-emerald-700",
     cancelled: "bg-red-50 text-red-700",
   };
@@ -383,7 +385,7 @@ export default async function ClientOrderDetailPage({ params }: Props) {
                   <span>Livraison</span>
                   <span>
                     {Number(order.delivery_price || 0) === 0
-                      ? "Gratuite"
+                      ? "Sur devis"
                       : formatPrice(order.delivery_price)}
                   </span>
                 </div>

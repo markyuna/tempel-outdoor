@@ -342,6 +342,7 @@ function getCategoryLabel(category: string) {
     "baby-foot": "Baby-foot",
     billard: "Billard",
     fitness: "Fitness",
+    loisirs: "Loisirs",
   };
 
   return labels[category] ?? category;
