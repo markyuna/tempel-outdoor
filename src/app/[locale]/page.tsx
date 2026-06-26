@@ -46,7 +46,7 @@ export default async function HomePage({ params }: Props) {
 
       <TrustSection />
 
-      <ProduitsPhares />
+      <ProduitsPhares locale={locale} />
 
       <section className="bg-black px-6 py-24 text-white">
         <div className="mx-auto max-w-4xl text-center">
