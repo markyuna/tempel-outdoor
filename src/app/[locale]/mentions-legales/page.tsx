@@ -3,146 +3,181 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Mentions légales | Tempel Outdoor",
   description:
-    "Mentions légales du site Tempel Outdoor : propriétaire du site, immatriculation, création du site, hébergement, propriété intellectuelle et droit applicable.",
+    "Mentions légales du site Tempel Outdoor : propriétaire, immatriculation, hébergement, propriété intellectuelle et droit applicable.",
 };
 
 export default function MentionsLegalesPage() {
   return (
     <main className="bg-[#f7f4ee] text-[#181512]">
-      <section className="px-6 py-24 md:py-32">
-        <div className="mx-auto max-w-4xl">
-          <p className="text-sm font-medium uppercase tracking-[0.35em] text-[#b87932]">
+      {/* Header */}
+      <section className="bg-black px-6 py-20 text-white">
+        <div className="mx-auto max-w-3xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[#d7b86e]">
             Informations légales
           </p>
-
-          <h1 className="mt-6 text-4xl font-semibold tracking-tight md:text-6xl">
+          <h1 className="mt-4 text-4xl font-semibold tracking-tight md:text-5xl">
             Mentions légales
           </h1>
-
-          <p className="mt-6 text-lg leading-8 text-[#5f5a54]">
-            Conformément aux dispositions de la loi n°2004-575 du 21 juin 2004
-            pour la confiance dans l’économie numérique, les utilisateurs du
-            site Tempel Outdoor sont informés des présentes mentions légales.
+          <p className="mt-5 text-sm text-white/50">
+            Conformément à la loi n°2004-575 du 21 juin 2004 pour la confiance
+            dans l&apos;économie numérique (LCEN)
           </p>
         </div>
       </section>
 
-      <section className="px-6 pb-24">
-        <div className="mx-auto max-w-4xl space-y-10">
-          <LegalCard title="Propriétaire du site">
-            <div className="space-y-2">
-              <p className="font-medium text-[#181512]">TEMPEL OUTDOOR</p>
+      <div className="mx-auto max-w-3xl px-6 py-10">
+        <div className="overflow-hidden rounded-2xl border border-black/8 bg-white divide-y divide-black/8">
+          {/* Éditeur du site */}
+          <div className="px-7 py-6">
+            <h2 className="text-xs font-semibold uppercase tracking-[0.28em] text-[#d7b86e]">
+              Éditeur du site
+            </h2>
+            <div className="mt-4 space-y-1 text-sm leading-7 text-neutral-600">
+              <p><strong className="font-semibold text-neutral-900">TEMPEL OUTDOOR</strong></p>
+              <p>Marque exploitée par RB Végétal</p>
               <p>16 Rue Georges Duhamel</p>
               <p>95300 Hérouville-en-Vexin – France</p>
-              <p>https://tempel-outdoor.com</p>
-            </div>
-          </LegalCard>
-
-          <LegalCard title="Immatriculation">
-            <div className="space-y-3">
               <p>
-                <strong className="text-[#181512]">SIRET :</strong>{" "}
-                49933190800032
+                Site web :{" "}
+                <a
+                  href="https://www.tempel-outdoor.fr"
+                  className="underline underline-offset-2 hover:text-black"
+                >
+                  https://www.tempel-outdoor.fr
+                </a>
               </p>
               <p>
-                <strong className="text-[#181512]">
-                  TVA intracommunautaire :
-                </strong>{" "}
-                FR01499331908
-              </p>
-              <p>
-                <strong className="text-[#181512]">RCS :</strong> Pontoise B
-                499331908
-              </p>
-              <p>
-                <strong className="text-[#181512]">Capital social :</strong>{" "}
-                12 000 €
+                Contact :{" "}
+                <a
+                  href="mailto:contact@tempel-outdoor.fr"
+                  className="underline underline-offset-2 hover:text-black"
+                >
+                  contact@tempel-outdoor.fr
+                </a>
               </p>
             </div>
-          </LegalCard>
+          </div>
 
-          <LegalCard title="Création du site">
-            <div className="space-y-3">
+          {/* Directeur de publication */}
+          <div className="px-7 py-6">
+            <h2 className="text-xs font-semibold uppercase tracking-[0.28em] text-neutral-400">
+              Directeur de publication
+            </h2>
+            <div className="mt-4 text-sm leading-7 text-neutral-600">
+              <p>Le directeur de publication du site <strong className="text-neutral-900">www.tempel-outdoor.fr</strong> est le représentant légal de RB Végétal.</p>
+            </div>
+          </div>
+
+          {/* Immatriculation */}
+          <div className="px-7 py-6">
+            <h2 className="text-xs font-semibold uppercase tracking-[0.28em] text-neutral-400">
+              Immatriculation
+            </h2>
+            <div className="mt-4 grid gap-2 text-sm leading-7 text-neutral-600 sm:grid-cols-2">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">SIRET</p>
+                <p className="text-neutral-900">49933190800032</p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">TVA intracommunautaire</p>
+                <p className="text-neutral-900">FR01499331908</p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">RCS</p>
+                <p className="text-neutral-900">Pontoise B 499 331 908</p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">Capital social</p>
+                <p className="text-neutral-900">12 000 €</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Création du site */}
+          <div className="px-7 py-6">
+            <h2 className="text-xs font-semibold uppercase tracking-[0.28em] text-neutral-400">
+              Conception et développement
+            </h2>
+            <div className="mt-4 text-sm leading-7 text-neutral-600">
               <p>
                 Le site internet Tempel Outdoor a été conçu et développé par{" "}
-                <strong className="text-[#181512]">Marcos Suarez</strong>.
-              </p>
-
-              <p>
-                Conception UX/UI, développement web, intégration, optimisation
-                technique et mise en ligne réalisés par Marcos Suarez.
-              </p>
-
-              <p>
-                Concepteur & Développeur Web indépendant
+                <strong className="text-neutral-900">Marcos Suarez</strong>,
+                développeur web indépendant. Conception UX/UI, développement,
+                intégration et mise en ligne réalisés par Marcos Suarez.
               </p>
             </div>
-          </LegalCard>
+          </div>
 
-          <LegalCard title="Hébergement">
-            <div className="space-y-2">
-              <p className="font-medium text-[#181512]">Vercel Inc.</p>
-              <p>340 S Lemon Ave #4133</p>
-              <p>Walnut, CA 91789</p>
-              <p>États-Unis</p>
-            </div>
-          </LegalCard>
-
-          <LegalCard title="Droits d’auteur et propriété intellectuelle">
-            <div className="space-y-4">
+          {/* Hébergement */}
+          <div className="px-7 py-6">
+            <h2 className="text-xs font-semibold uppercase tracking-[0.28em] text-neutral-400">
+              Hébergement
+            </h2>
+            <div className="mt-4 text-sm leading-7 text-neutral-600">
+              <p><strong className="text-neutral-900">Vercel Inc.</strong></p>
+              <p>340 S Lemon Ave #4133, Walnut, CA 91789 – États-Unis</p>
               <p>
-                Tous les éléments présents sur ce site, notamment les textes,
-                images, graphismes, logos, icônes, vidéos, illustrations,
-                documents et contenus numériques, sont protégés par les lois
-                françaises et internationales relatives à la propriété
+                <a
+                  href="https://vercel.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline underline-offset-2 hover:text-black"
+                >
+                  vercel.com
+                </a>
+              </p>
+            </div>
+          </div>
+
+          {/* Propriété intellectuelle */}
+          <div className="px-7 py-6">
+            <h2 className="text-xs font-semibold uppercase tracking-[0.28em] text-neutral-400">
+              Propriété intellectuelle
+            </h2>
+            <div className="mt-4 space-y-3 text-sm leading-7 text-neutral-600">
+              <p>
+                Tous les éléments présents sur ce site — textes, images, graphismes, logos,
+                vidéos, illustrations, documents et contenus numériques — sont protégés par
+                les lois françaises et internationales relatives à la propriété intellectuelle
+                et sont la propriété exclusive de Tempel Outdoor / RB Végétal.
+              </p>
+              <p>
+                Toute reproduction, représentation, modification, publication, adaptation ou
+                exploitation de tout ou partie de ces éléments, sans autorisation écrite
+                préalable, est strictement interdite et constituerait une contrefaçon
+                sanctionnée par les articles L.335-2 et suivants du Code de la propriété
                 intellectuelle.
               </p>
-
-              <p>
-                Toute reproduction, représentation, modification, publication,
-                adaptation ou exploitation de tout ou partie du site, quel que
-                soit le moyen ou le procédé utilisé, est interdite sans
-                autorisation écrite préalable de Tempel Outdoor.
-              </p>
             </div>
-          </LegalCard>
+          </div>
 
-          <LegalCard title="Hyperliens">
-            <p>
-              Tempel Outdoor ne saurait être tenu responsable du contenu, de la
-              disponibilité ou du fonctionnement des sites internet accessibles
-              via des liens externes présents sur ce site. L’utilisateur est
-              invité à faire preuve de vigilance lors de la consultation de ces
-              ressources externes.
+          {/* Liens hypertextes */}
+          <div className="px-7 py-6">
+            <h2 className="text-xs font-semibold uppercase tracking-[0.28em] text-neutral-400">
+              Liens hypertextes
+            </h2>
+            <p className="mt-4 text-sm leading-7 text-neutral-600">
+              Tempel Outdoor ne saurait être tenu responsable du contenu, de la disponibilité
+              ou du fonctionnement des sites accessibles via des liens externes présents sur ce
+              site. L&apos;utilisateur est invité à faire preuve de vigilance lors de la
+              consultation de ces ressources.
             </p>
-          </LegalCard>
+          </div>
 
-          <LegalCard title="Droit applicable">
-            <p>
-              Le présent site ainsi que son contenu sont soumis au droit
-              français. Tout litige relatif à l’utilisation du site
-              https://tempel-outdoor.com sera soumis à la compétence des
-              juridictions françaises compétentes.
+          {/* Droit applicable */}
+          <div className="px-7 py-6">
+            <h2 className="text-xs font-semibold uppercase tracking-[0.28em] text-neutral-400">
+              Droit applicable
+            </h2>
+            <p className="mt-4 text-sm leading-7 text-neutral-600">
+              Le présent site ainsi que son contenu sont soumis au droit français. Tout litige
+              relatif à l&apos;utilisation du site{" "}
+              <strong className="text-neutral-900">www.tempel-outdoor.fr</strong> sera soumis
+              à la compétence des juridictions françaises compétentes.
             </p>
-          </LegalCard>
+          </div>
         </div>
-      </section>
+      </div>
     </main>
-  );
-}
-
-function LegalCard({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="rounded-[2rem] border border-[#e6ded1] bg-white p-8 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-      <h2 className="text-2xl font-semibold">{title}</h2>
-
-      <div className="mt-6 leading-8 text-[#5f5a54]">{children}</div>
-    </section>
   );
 }
