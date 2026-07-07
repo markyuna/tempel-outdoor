@@ -47,7 +47,7 @@ type Props = {
   locale?: string;
 };
 
-const CART_STORAGE_KEY = "tempel_cart";
+import { CART_STORAGE_KEY, CART_UPDATED_EVENT } from "@/lib/cart";
 
 function formatPrice(price: number) {
   return new Intl.NumberFormat("fr-FR", {
@@ -154,7 +154,7 @@ export default function ProductBuyBox({
         ];
 
     window.localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(updatedCart));
-    window.dispatchEvent(new Event("tempel-cart-updated"));
+    window.dispatchEvent(new Event(CART_UPDATED_EVENT));
 
     setAdded(true);
 

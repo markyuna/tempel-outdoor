@@ -10,6 +10,7 @@ import {
   Users,
 } from "lucide-react";
 
+
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
@@ -151,29 +152,19 @@ export default async function AdminPage() {
   return (
     <main className="min-h-screen bg-[#f7f4ee]">
       <div className="mx-auto max-w-7xl px-6 py-16">
-        <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
-          <div className="max-w-3xl">
-            <p className="text-sm uppercase tracking-[0.3em] text-[#9c7b4f]">
-              Administration
-            </p>
+        <div className="max-w-3xl">
+          <p className="text-sm uppercase tracking-[0.3em] text-[#9c7b4f]">
+            Administration
+          </p>
 
-            <h1 className="mt-3 text-4xl font-semibold tracking-tight text-[#181512] md:text-5xl">
-              Dashboard Tempel Outdoor
-            </h1>
+          <h1 className="mt-3 text-4xl font-semibold tracking-tight text-[#181512] md:text-5xl">
+            Dashboard Tempel Outdoor
+          </h1>
 
-            <p className="mt-4 text-lg leading-8 text-[#5f5a54]">
-              Gérez le catalogue, les commandes, les clients et les contenus
-              premium du site.
-            </p>
-          </div>
-
-          <Link
-            href="/"
-            className="inline-flex w-fit items-center gap-2 rounded-full border border-black/10 bg-white px-5 py-3 text-sm font-semibold text-[#181512] transition hover:bg-black hover:text-white"
-          >
-            Voir le site
-            <ArrowRight className="h-4 w-4" />
-          </Link>
+          <p className="mt-4 text-lg leading-8 text-[#5f5a54]">
+            Gérez le catalogue, les commandes, les clients et les contenus
+            premium du site.
+          </p>
         </div>
 
         <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-4">

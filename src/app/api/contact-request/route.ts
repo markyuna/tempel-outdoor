@@ -2,6 +2,7 @@
 
 import { NextResponse } from "next/server";
 
+import { sendContactNotification } from "@/lib/resend";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 type ContactRequestBody = {
@@ -83,6 +84,16 @@ export async function POST(request: Request) {
         { status: 500 }
       );
     }
+
+    // Send admin notification — non-blocking, failure doesn't affect the response
+    sendContactNotification({
+      name,
+      email,
+      phone: phone || null,
+      message,
+      source,
+      requestId: data.id,
+    }).catch((err) => console.error("Email notification failed:", err));
 
     return NextResponse.json({
       success: true,

@@ -253,17 +253,10 @@ export default async function AdminProductEditPage({ params }: PageProps) {
   return (
     <main className="min-h-screen bg-[#f7f4ee] px-6 py-12 text-black">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-8 flex flex-wrap items-center gap-4">
-          <Link
-            href="/admin"
-            className="inline-flex items-center rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-medium text-black transition hover:bg-black hover:text-white"
-          >
-            Dashboard Admin
-          </Link>
-
+        <div className="mb-8">
           <Link
             href="/admin/products"
-            className="text-sm text-black/60 transition hover:text-black"
+            className="inline-flex items-center gap-1 text-sm text-black/60 transition hover:text-black"
           >
             ← Retour aux produits
           </Link>

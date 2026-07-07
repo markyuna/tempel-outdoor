@@ -2,6 +2,7 @@
 
 import { NextResponse } from "next/server";
 
+import { sendOrderNotification } from "@/lib/resend";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -312,6 +313,30 @@ export async function POST(request: Request) {
         console.error("Erreur sauvegarde profil client:", profileError);
       }
     }
+
+    sendOrderNotification({
+      orderId: order.id,
+      customer: {
+        firstName: customer.firstName,
+        lastName: customer.lastName,
+        email: customer.email,
+        phone: customer.phone,
+      },
+      items: validItems.map((item) => ({
+        name: item.name,
+        quantity: item.quantity,
+        unitPrice: item.price,
+        total: item.total,
+        options: item.options ?? null,
+      })),
+      billingAddress: customer.billingAddress,
+      billingCity: customer.billingCity,
+      billingPostalCode: customer.billingPostalCode,
+      billingCountry: customer.billingCountry,
+      message: customer.message,
+      subtotal,
+      total,
+    }).catch((err) => console.error("Order email notification failed:", err));
 
     return NextResponse.json({
       success: true,

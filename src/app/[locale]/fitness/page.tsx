@@ -2,15 +2,26 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Dumbbell, ShieldCheck, Target } from "lucide-react";
 
-export const metadata: Metadata = {
-  title: "Fitness premium à domicile | Tempel Outdoor",
-  description:
-    "Découvrez nos équipements fitness premium pour créer un espace d’entraînement confortable et performant à domicile.",
-};
+import { buildAlternates, buildOg } from "@/lib/seo";
 
 type Props = {
   params: Promise<{ locale: string }>;
 };
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { locale } = await params;
+
+  const title = "Fitness premium à domicile";
+  const description =
+    "Découvrez nos équipements fitness premium pour créer un espace d’entraînement confortable et performant à domicile.";
+
+  return {
+    title,
+    description,
+    alternates: buildAlternates(locale, "/fitness"),
+    openGraph: buildOg({ title, description, locale }),
+  };
+}
 
 export default async function FitnessPage({ params }: Props) {
   const { locale } = await params;

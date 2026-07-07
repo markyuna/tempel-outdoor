@@ -181,26 +181,26 @@ export default async function AccountInformationsPage({ params }: Props) {
   }
 
   return (
-    <main className="min-h-screen bg-[#f7f4ee] px-6 py-28 text-[#181512]">
+    <main className="min-h-screen bg-[#f7f4ee] px-6 py-20 text-[#181512]">
       <section className="mx-auto max-w-4xl">
         <Link
           href={`/${locale}/mon-compte`}
-          className="mb-8 inline-flex items-center gap-2 text-sm font-semibold text-neutral-600 transition hover:text-black"
+          className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-neutral-600 transition hover:text-black"
         >
           <ArrowLeft className="h-4 w-4" />
           Retour à mon compte
         </Link>
 
-        <div className="rounded-[2rem] bg-white p-8 shadow-sm md:p-10">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.3em] text-[#9c7b4f]">
+        <div className="rounded-[2rem] bg-white p-6 shadow-sm md:p-8">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.3em] text-[#9c7b4f]">
             Espace client
           </p>
 
-          <h1 className="text-3xl font-semibold tracking-tight md:text-5xl">
+          <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
             Mes informations
           </h1>
 
-          <p className="mt-4 max-w-2xl text-sm leading-6 text-neutral-600">
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-500">
             Ces informations seront utilisées automatiquement lors de vos
             prochaines demandes de commande ou de devis.
           </p>

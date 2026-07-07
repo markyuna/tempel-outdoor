@@ -153,9 +153,9 @@ export default async function MonComptePage({ params }: Props) {
     .filter((favorite) => Boolean(favorite.products));
 
   return (
-    <main className="min-h-screen bg-[#f7f4ee] px-6 py-28">
+    <main className="min-h-screen bg-[#f7f4ee] px-6 py-20">
       <section className="mx-auto max-w-6xl">
-        <h1 className="mb-10 text-4xl font-semibold text-[#181512]">
+        <h1 className="mb-6 text-3xl font-semibold text-[#181512]">
           Mon compte
         </h1>
 

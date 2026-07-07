@@ -10,6 +10,8 @@ import ProductBuyBox from "@/components/products/ProductBuyBox";
 import ProductPurchaseSection from "@/components/products/ProductPurchaseSection";
 import ProductSpecs from "@/components/products/ProductSpecs";
 import ProductStoryVideo from "@/components/products/ProductStoryVideo";
+import JsonLd from "@/components/seo/JsonLd";
+import { buildAlternates, buildOg, SITE_NAME, SITE_URL } from "@/lib/seo";
 import { createClient } from "@/lib/supabase/server";
 
 type Props = {
@@ -185,24 +187,46 @@ async function getInitialIsFavorite(productId: string) {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { slug } = await params;
+  const { slug, locale } = await params;
   const product = await getProduct(slug);
 
   if (!product) {
     return {
-      title: "Produit introuvable | Tempel Outdoor",
+      title: "Produit introuvable",
       description: "Ce produit n'est pas disponible.",
+      robots: { index: false },
     };
   }
 
+  const title = product.name;
+  const description =
+    product.short_description ||
+    product.description?.slice(0, 155) ||
+    `${product.name} — Tempel Outdoor`;
+
+  const featuredImage = getFeaturedImage(product.product_media ?? []);
+
   return {
-    title: `${product.name} | Tempel Outdoor`,
-    description: product.short_description || product.description || "",
+    title,
+    description,
+    alternates: buildAlternates(locale, `/products/${slug}`),
+    openGraph: buildOg({
+      title,
+      description,
+      locale,
+      type: "article",
+      ...(featuredImage ? { image: featuredImage } : {}),
+    }),
   };
 }
 
 function getCategoryLabel(category: string) {
   return CATEGORY_LABELS[category] || category;
+}
+
+function getCategoryHref(locale: string, universe: string, category: string) {
+  if (universe === "fitness") return `/${locale}/fitness`;
+  return `/${locale}/${universe}/${category}`;
 }
 
 function sortMedia(media: ProductMedia[]) {
@@ -243,18 +267,28 @@ function getProductDescriptionParagraphs(description: string | null) {
     .filter(Boolean);
 }
 
+const UNIVERSE_TAGS: Record<string, string[]> = {
+  "bien-etre": ["Bien-être & relaxation", "Confort au quotidien", "Sélection premium"],
+  loisirs: ["Convivialité", "Design contemporain", "Sélection premium"],
+  fitness: ["Performance", "Équipement pro", "Sélection premium"],
+};
+
 function ProductDescriptionSection({
   productName,
   description,
+  universe,
 }: {
   productName: string;
   description: string | null;
+  universe: string;
 }) {
   const paragraphs = getProductDescriptionParagraphs(description);
 
   if (paragraphs.length === 0) {
     return null;
   }
+
+  const tags = UNIVERSE_TAGS[universe] ?? ["Qualité premium", "Confort au quotidien", "Sélection premium"];
 
   return (
     <section className="relative mt-16 overflow-hidden rounded-[2.25rem] border border-black/10 bg-white p-8 shadow-[0_24px_70px_rgba(0,0,0,0.08)] md:p-10">
@@ -271,11 +305,6 @@ function ProductDescriptionSection({
           <h2 className="mt-6 max-w-md text-3xl font-semibold tracking-tight text-[#181512] md:text-4xl">
             {productName}, pensé pour votre confort.
           </h2>
-
-          <p className="mt-5 max-w-md text-sm leading-7 text-neutral-500">
-            Une présentation claire du produit, de son usage et de ses avantages
-            pour vous aider à choisir le modèle le plus adapté à votre espace.
-          </p>
         </div>
 
         <div className="rounded-[1.75rem] border border-black/10 bg-[#f7f4ee] p-6 md:p-8">
@@ -286,11 +315,7 @@ function ProductDescriptionSection({
           </div>
 
           <div className="mt-8 grid gap-3 sm:grid-cols-3">
-            {[
-              "Confort au quotidien",
-              "Design extérieur",
-              "Sélection premium",
-            ].map((item) => (
+            {tags.map((item) => (
               <div
                 key={item}
                 className="flex items-center gap-2 rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm font-semibold text-[#181512]"
@@ -416,12 +441,33 @@ export default async function ProductPage({ params }: Props) {
   const storyVideoUrl =
     CATEGORY_VIDEOS[product.category] ?? "/videos/tempel-outdoor.mp4";
 
+  const productSchema = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    description: product.short_description || product.description || "",
+    url: `${SITE_URL}/${locale}/products/${product.slug}`,
+    brand: { "@type": "Brand", name: SITE_NAME },
+    ...(featuredImage ? { image: [featuredImage] } : {}),
+    offers: {
+      "@type": "Offer",
+      price: product.price.toString(),
+      priceCurrency: "EUR",
+      availability:
+        product.stock > 0
+          ? "https://schema.org/InStock"
+          : "https://schema.org/OutOfStock",
+      seller: { "@type": "Organization", name: SITE_NAME },
+    },
+  };
+
   return (
     <main className="min-h-screen bg-[#f7f4ee] text-[#181512]">
+      <JsonLd data={productSchema} />
       <section className="px-6 pb-20 pt-4">
         <div className="mx-auto max-w-7xl">
           <Link
-            href={`/${locale}/${product.universe}/${product.category}`}
+            href={getCategoryHref(locale, product.universe, product.category)}
             className="inline-flex items-center gap-2 text-sm font-semibold text-neutral-600 transition hover:text-black"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -455,6 +501,7 @@ export default async function ProductPage({ params }: Props) {
           <ProductDescriptionSection
             productName={product.name}
             description={product.description}
+            universe={product.universe}
           />
 
           <section className="mt-20 grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-stretch">

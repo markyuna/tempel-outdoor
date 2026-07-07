@@ -1,111 +1,162 @@
-import { Waves, Flame, Trophy, Utensils } from "lucide-react";
+import type { Metadata } from "next";
 import Link from "next/link";
+import { buildAlternates, buildOg } from "@/lib/seo";
 
-const univers = [
-  {
-    icon: Waves,
-    title: "Spa extérieur",
-    description:
-      "Profitez de spas de nage de 2 à 7 places, pensés pour la relaxation aquatique en petit comité ou en groupe. Idéal pour décompresser après une longue journée ou partager un moment privilégié avec vos proches.",
-  },
-  {
-    icon: Flame,
-    title: "Sauna bois haut de gamme",
-    description:
-      "Découvrez nos saunas extérieurs de 2 à 10 places, conçus en épicéa ou thermo-bois, avec chauffage électrique ou bois et options de vestiaire intégré. Une expérience bien-être élégante, à vivre toute l’année.",
-  },
-  {
-    icon: Trophy,
-    title: "Baby-foot extérieur résistant",
-    description:
-      "Nos baby-foot d’extérieur, en version duo ou familiale, sont conçus pour résister aux intempéries. Installez-les sur une terrasse, dans un jardin ou sous une véranda pour des moments de jeu et de convivialité.",
-  },
-  {
-    icon: Utensils,
-    title: "Billard convertible design",
-    description:
-      "Nos billards extérieurs convertibles se transforment en tables à manger de 6 à 10 couverts. Une solution élégante et gain de place pour passer du jeu au repas en toute simplicité.",
-  },
-];
+type MetaProps = {
+  params: Promise<{ locale: string }>;
+};
+
+export async function generateMetadata({ params }: MetaProps): Promise<Metadata> {
+  const { locale } = await params;
+  const title = "À propos — Tempel Outdoor";
+  const description =
+    "Découvrez l'histoire et les valeurs de Tempel Outdoor, spécialiste du spa, sauna, loisirs et fitness premium en France.";
+  return {
+    title,
+    description,
+    alternates: buildAlternates(locale, "/a-propos"),
+    openGraph: buildOg({ title, description, locale }),
+  };
+}
 
 type Props = {
   params: Promise<{ locale: string }>;
 };
 
+const univers = [
+  {
+    name: "Spa & Jacuzzi",
+    desc: "Hydrothérapie et relaxation — modèles intérieurs et extérieurs de 2 à 7 places.",
+  },
+  {
+    name: "Sauna & Hammam",
+    desc: "Chaleur sèche ou vapeur, en épicéa ou thermo-bois, pour profiter toute l'année.",
+  },
+  {
+    name: "Baby-foot & Billard",
+    desc: "Tables de compétition et finitions premium pour vos espaces de loisirs.",
+  },
+  {
+    name: "Fitness Premium",
+    desc: "Cardio, musculation, cross training et home gym — équipements professionnels chez vous.",
+  },
+];
+
+const engagements = [
+  {
+    label: "Sélection rigoureuse",
+    text: "Chaque produit est évalué sur ses matériaux, sa durabilité et ses performances avant d'intégrer notre catalogue.",
+  },
+  {
+    label: "Conseil personnalisé",
+    text: "Nous accompagnons chaque client dans le choix du produit adapté à son espace, son usage et son budget.",
+  },
+  {
+    label: "Livraison en France",
+    text: "Livraison coordonnée partout en France métropolitaine, avec suivi de commande dédié.",
+  },
+];
+
 export default async function AboutPage({ params }: Props) {
   const { locale } = await params;
 
   return (
-    <main className="bg-[#f7f4ee] text-[#181512]">
-      <section className="px-6 py-24 md:py-32">
-        <div className="mx-auto max-w-6xl text-center">
-          <p className="text-sm font-medium uppercase tracking-[0.35em] text-[#b87932]">
+    <main className="bg-[#f7f4ee]">
+      {/* Header */}
+      <section className="bg-black px-6 py-20 text-white">
+        <div className="mx-auto max-w-3xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[#d7b86e]">
             À propos
           </p>
-
-          <h1 className="mt-6 text-4xl font-semibold tracking-tight md:text-6xl">
-            Tempel Outdoor, votre espace bien-être et convivialité en extérieur
+          <h1 className="mt-4 text-4xl font-semibold tracking-tight md:text-5xl">
+            Tempel Outdoor
           </h1>
-
-          <p className="mx-auto mt-8 max-w-3xl text-lg leading-8 text-[#5f5a54]">
-            Tempel Outdoor sélectionne des équipements haut de gamme pour
-            transformer vos extérieurs en véritables lieux de détente, de
-            partage et d’élégance. Spa, sauna, baby-foot, billard ou espace
-            fitness : chaque univers est pensé pour sublimer votre jardin,
-            votre terrasse ou votre maison.
+          <p className="mt-5 max-w-2xl text-lg leading-8 text-white/65">
+            Spécialiste du bien-être et des loisirs premium, nous sélectionnons
+            des équipements haut de gamme pour transformer vos espaces en lieux
+            de vie d&apos;exception.
           </p>
         </div>
       </section>
 
-      <section className="px-6 pb-24">
-        <div className="mx-auto grid max-w-7xl gap-8 md:grid-cols-2">
-          {univers.map((item) => {
-            const Icon = item.icon;
-
-            return (
-              <article
-                key={item.title}
-                className="rounded-[2rem] border border-[#e6ded1] bg-white/80 p-8 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl"
-              >
-                <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-black text-[#d7b86e]">
-                  <Icon className="h-7 w-7" />
-                </div>
-
-                <h2 className="text-2xl font-semibold">{item.title}</h2>
-
-                <p className="mt-4 text-base leading-8 text-[#5f5a54]">
-                  {item.description}
-                </p>
-              </article>
-            );
-          })}
-        </div>
-      </section>
-
-      <section className="bg-black px-6 py-24 text-white">
-        <div className="mx-auto max-w-5xl text-center">
-          <p className="text-sm font-medium uppercase tracking-[0.35em] text-[#d7b86e]">
-            Notre vision
-          </p>
-
-          <h2 className="mt-6 text-3xl font-semibold tracking-tight md:text-5xl">
-            Créer des espaces extérieurs pensés pour vivre mieux
+      <div className="mx-auto max-w-3xl space-y-4 px-6 py-10">
+        {/* Notre histoire */}
+        <div className="rounded-2xl border border-black/8 bg-white px-7 py-6">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.28em] text-[#d7b86e]">
+            Notre histoire
           </h2>
-
-          <p className="mx-auto mt-6 max-w-3xl text-lg leading-8 text-white/70">
-            Notre objectif est simple : vous accompagner dans la création d’un
-            espace extérieur à votre image, où confort, design, bien-être et
-            convivialité se rencontrent naturellement.
+          <p className="mt-4 text-sm leading-7 text-neutral-600">
+            Née de la passion pour les espaces de vie bien conçus, Tempel Outdoor
+            s&apos;est construite autour d&apos;une conviction simple : le bien-être et le
+            plaisir méritent des équipements à la hauteur. Nous travaillons avec
+            des fabricants sélectionnés pour leur rigueur technique et leurs
+            finitions irréprochables.
           </p>
-
-          <Link
-            href={`/${locale}/contact`}
-            className="mt-10 inline-flex rounded-full bg-[#d7b86e] px-8 py-4 text-sm font-semibold uppercase tracking-[0.2em] text-black transition hover:bg-white"
-          >
-            Nous contacter
-          </Link>
+          <p className="mt-3 text-sm leading-7 text-neutral-600">
+            Basée en Normandie, notre équipe accompagne des particuliers et des
+            professionnels partout en France métropolitaine, de la sélection du
+            produit à la livraison.
+          </p>
         </div>
-      </section>
+
+        {/* Nos univers */}
+        <div className="rounded-2xl border border-black/8 bg-white px-7 py-6">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.28em] text-[#d7b86e]">
+            Nos univers
+          </h2>
+          <div className="mt-4 grid gap-px overflow-hidden rounded-xl border border-black/8 bg-black/8 sm:grid-cols-2">
+            {univers.map((u) => (
+              <div key={u.name} className="bg-white px-5 py-4">
+                <p className="text-sm font-semibold text-neutral-900">{u.name}</p>
+                <p className="mt-1 text-xs leading-5 text-neutral-500">{u.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Engagements */}
+        <div className="rounded-2xl border border-black/8 bg-white px-7 py-6">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.28em] text-[#d7b86e]">
+            Nos engagements
+          </h2>
+          <div className="mt-4 divide-y divide-black/8">
+            {engagements.map((e) => (
+              <div key={e.label} className="flex gap-4 py-4 first:pt-0 last:pb-0">
+                <div className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#d7b86e]" />
+                <div>
+                  <p className="text-sm font-semibold text-neutral-900">{e.label}</p>
+                  <p className="mt-0.5 text-sm leading-6 text-neutral-500">{e.text}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Contact */}
+        <div className="rounded-2xl border border-black/8 bg-white px-7 py-6">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.28em] text-[#d7b86e]">
+            Nous contacter
+          </h2>
+          <p className="mt-4 text-sm leading-7 text-neutral-600">
+            Pour toute question, demande de devis ou conseil personnalisé,
+            contactez-nous par e-mail ou via le formulaire de contact.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <a
+              href="mailto:contact@tempel-outdoor.fr"
+              className="inline-flex items-center rounded-full border border-black/10 bg-black/5 px-4 py-2 text-xs font-medium text-neutral-700 transition hover:bg-black hover:text-white"
+            >
+              contact@tempel-outdoor.fr
+            </a>
+            <Link
+              href={`/${locale}/contact`}
+              className="inline-flex items-center rounded-full border border-black/10 bg-black/5 px-4 py-2 text-xs font-medium text-neutral-700 transition hover:bg-black hover:text-white"
+            >
+              Formulaire de contact
+            </Link>
+          </div>
+        </div>
+      </div>
     </main>
   );
 }

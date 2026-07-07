@@ -1,7 +1,29 @@
 // src/app/[locale]/page.tsx
 
+import type { Metadata } from "next";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
+
+import { buildAlternates, buildOg } from "@/lib/seo";
+
+type MetaProps = {
+  params: Promise<{ locale: string }>;
+};
+
+export async function generateMetadata({ params }: MetaProps): Promise<Metadata> {
+  const { locale } = await params;
+
+  const title = "Tempel Outdoor — Spa, Sauna & Loisirs Premium";
+  const description =
+    "Découvrez notre sélection haut de gamme de spas, saunas, baby-foot, billards et équipements fitness pour transformer votre extérieur en espace de vie premium.";
+
+  return {
+    title,
+    description,
+    alternates: buildAlternates(locale, "/"),
+    openGraph: buildOg({ title, description, locale }),
+  };
+}
 
 import HeroSection from "@/components/home/HeroSection";
 import UniversSection from "@/components/home/UniversSection";
@@ -24,7 +46,7 @@ export default async function HomePage({ params }: Props) {
 
       <TrustSection />
 
-      <ProduitsPhares />
+      <ProduitsPhares locale={locale} />
 
       <section className="bg-black px-6 py-24 text-white">
         <div className="mx-auto max-w-4xl text-center">

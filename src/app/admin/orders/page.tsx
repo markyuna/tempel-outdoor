@@ -125,12 +125,6 @@ export default async function AdminOrdersPage() {
             </p>
           </div>
 
-          <Link
-            href="/admin"
-            className="inline-flex rounded-full border border-black/10 bg-white px-5 py-3 text-sm font-semibold text-[#181512] transition hover:bg-black hover:text-white"
-          >
-            Retour dashboard
-          </Link>
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">

@@ -10,13 +10,34 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
-export const metadata: Metadata = {
-  title: "Contact | Tempel Outdoor",
-  description:
-    "Contactez Tempel Outdoor pour un conseil personnalisé sur nos spas, saunas, billards, baby-foot et équipements fitness premium.",
+import ContactForm from "@/components/forms/ContactForm";
+import { buildAlternates, buildOg } from "@/lib/seo";
+
+type ContactProps = {
+  params: Promise<{ locale: string }>;
 };
 
-const contactCards = [
+export async function generateMetadata({ params }: ContactProps): Promise<Metadata> {
+  const { locale } = await params;
+
+  const title = "Contact";
+  const description =
+    "Contactez Tempel Outdoor pour un conseil personnalisé sur nos spas, saunas, billards, baby-foot et équipements fitness premium.";
+
+  return {
+    title,
+    description,
+    alternates: buildAlternates(locale, "/contact"),
+    openGraph: buildOg({ title, description, locale }),
+  };
+}
+
+const contactCards: {
+  icon: React.ElementType;
+  title: string;
+  value: string;
+  href: string | null;
+}[] = [
   {
     icon: Mail,
     title: "Email",
@@ -37,16 +58,8 @@ const contactCards = [
   },
 ];
 
-const projectTypes = [
-  "Spa extérieur",
-  "Sauna bois",
-  "Billard convertible",
-  "Baby-foot extérieur",
-  "Fitness premium",
-  "Projet sur mesure",
-];
-
-export default function ContactPage() {
+export default async function ContactPage({ params }: ContactProps) {
+  const { locale } = await params;
   return (
     <main className="bg-[#f7f4ee] text-[#181512]">
       <section className="px-6 py-24 md:py-32">
@@ -106,92 +119,7 @@ export default function ContactPage() {
               </p>
             </div>
 
-            <form className="space-y-5">
-              <div className="grid gap-5 sm:grid-cols-2">
-                <FormField
-                  label="Prénom"
-                  name="firstName"
-                  placeholder="Votre prénom"
-                />
-
-                <FormField
-                  label="Nom"
-                  name="lastName"
-                  placeholder="Votre nom"
-                />
-              </div>
-
-              <FormField
-                label="Email"
-                name="email"
-                type="email"
-                placeholder="votre@email.com"
-              />
-
-              <FormField
-                label="Téléphone"
-                name="phone"
-                type="tel"
-                placeholder="+33 ..."
-              />
-
-              <div>
-                <label
-                  htmlFor="projectType"
-                  className="mb-2 block text-sm font-medium text-[#181512]"
-                >
-                  Type de projet
-                </label>
-
-                <select
-                  id="projectType"
-                  name="projectType"
-                  className="h-12 w-full rounded-full border border-[#ded5c8] bg-[#f7f4ee] px-5 text-sm text-[#181512] outline-none transition focus:border-[#b87932] focus:ring-4 focus:ring-[#b87932]/10"
-                  defaultValue=""
-                >
-                  <option value="" disabled>
-                    Sélectionnez un univers
-                  </option>
-
-                  {projectTypes.map((type) => (
-                    <option key={type} value={type}>
-                      {type}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="message"
-                  className="mb-2 block text-sm font-medium text-[#181512]"
-                >
-                  Message
-                </label>
-
-                <textarea
-                  id="message"
-                  name="message"
-                  rows={5}
-                  placeholder="Parlez-nous de votre espace, de vos envies et de votre budget approximatif..."
-                  className="w-full resize-none rounded-[1.5rem] border border-[#ded5c8] bg-[#f7f4ee] px-5 py-4 text-sm text-[#181512] outline-none transition placeholder:text-[#8a8178] focus:border-[#b87932] focus:ring-4 focus:ring-[#b87932]/10"
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="group inline-flex w-full items-center justify-center gap-3 rounded-full bg-[#181512] px-7 py-4 text-sm font-semibold uppercase tracking-[0.2em] text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#2b241f] hover:shadow-xl"
-              >
-                Envoyer ma demande
-                <ArrowRight className="h-4 w-4 transition duration-300 group-hover:translate-x-1" />
-              </button>
-
-              <p className="flex items-start gap-2 text-xs leading-6 text-[#6f675f]">
-                <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#b87932]" />
-                Vos informations sont utilisées uniquement pour répondre à votre
-                demande. Elles ne sont pas revendues à des tiers.
-              </p>
-            </form>
+            <ContactForm />
           </div>
         </div>
       </section>
@@ -231,7 +159,7 @@ export default function ContactPage() {
           </div>
 
           <Link
-            href="/fr"
+            href={`/${locale}`}
             className="group inline-flex items-center gap-3 rounded-full bg-[#d7b86e] px-7 py-4 text-sm font-semibold uppercase tracking-[0.2em] text-black transition-all duration-300 hover:-translate-y-0.5 hover:bg-white"
           >
             Voir les univers
@@ -240,37 +168,6 @@ export default function ContactPage() {
         </div>
       </section>
     </main>
-  );
-}
-
-function FormField({
-  label,
-  name,
-  type = "text",
-  placeholder,
-}: {
-  label: string;
-  name: string;
-  type?: string;
-  placeholder: string;
-}) {
-  return (
-    <div>
-      <label
-        htmlFor={name}
-        className="mb-2 block text-sm font-medium text-[#181512]"
-      >
-        {label}
-      </label>
-
-      <input
-        id={name}
-        name={name}
-        type={type}
-        placeholder={placeholder}
-        className="h-12 w-full rounded-full border border-[#ded5c8] bg-[#f7f4ee] px-5 text-sm text-[#181512] outline-none transition placeholder:text-[#8a8178] focus:border-[#b87932] focus:ring-4 focus:ring-[#b87932]/10"
-      />
-    </div>
   );
 }
 

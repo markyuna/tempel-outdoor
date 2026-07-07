@@ -49,7 +49,7 @@ function getProductImage(product: Product) {
   return media[0]?.url ?? "/images/placeholder-product.jpg";
 }
 
-export default async function ProduitsPhares() {
+export default async function ProduitsPhares({ locale = "fr" }: { locale?: string }) {
   const supabase = await createClient();
 
   const { data: products, error } = await supabase
@@ -114,7 +114,7 @@ export default async function ProduitsPhares() {
             return (
               <Link
                 key={product.id}
-                href={`/fr/products/${product.slug}`}
+                href={`/${locale}/products/${product.slug}`}
                 className="group block overflow-hidden rounded-[32px] bg-white shadow-sm transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl"
               >
                 <div className="relative h-[280px] overflow-hidden">
