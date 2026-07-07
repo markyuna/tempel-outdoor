@@ -147,11 +147,14 @@ export default function ChatWidget() {
   }, [messages]);
 
   useEffect(() => {
+    const controller = new AbortController();
+
     async function loadChatHistory() {
       try {
         const response = await fetch("/api/chat-history", {
           method: "GET",
           cache: "no-store",
+          signal: controller.signal,
         });
 
         if (!response.ok) {
@@ -165,13 +168,18 @@ export default function ChatWidget() {
           setMessages(data.messages);
         }
       } catch (error) {
+        if (controller.signal.aborted) return;
         console.error("Erreur chargement historique chatbot:", error);
       } finally {
-        setHistoryLoaded(true);
+        if (!controller.signal.aborted) setHistoryLoaded(true);
       }
     }
 
     loadChatHistory();
+
+    return () => {
+      controller.abort();
+    };
   }, []);
 
   useEffect(() => {
@@ -199,6 +207,8 @@ export default function ChatWidget() {
       window.clearTimeout(saveTimeoutRef.current);
     }
 
+    const controller = new AbortController();
+
     saveTimeoutRef.current = window.setTimeout(async () => {
       try {
         await fetch("/api/chat-history", {
@@ -207,8 +217,10 @@ export default function ChatWidget() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ messages }),
+          signal: controller.signal,
         });
       } catch (error) {
+        if (controller.signal.aborted) return;
         console.error("Erreur sauvegarde historique chatbot:", error);
       }
     }, 700);
@@ -217,6 +229,7 @@ export default function ChatWidget() {
       if (saveTimeoutRef.current) {
         window.clearTimeout(saveTimeoutRef.current);
       }
+      controller.abort();
     };
   }, [messages, historyLoaded]);
 

@@ -5,7 +5,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 
 type CartItem = {
@@ -27,9 +27,7 @@ function formatPrice(price: number) {
   }).format(price);
 }
 
-function getInitialCart(): CartItem[] {
-  if (typeof window === "undefined") return [];
-
+function readCartFromStorage(): CartItem[] {
   try {
     return JSON.parse(
       window.localStorage.getItem(CART_STORAGE_KEY) || "[]"
@@ -43,7 +41,19 @@ export default function CartPage() {
   const params = useParams<{ locale: string }>();
   const locale = params?.locale ?? "fr";
 
-  const [cart, setCart] = useState<CartItem[]>(getInitialCart);
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Cart lives in localStorage, which isn't available during SSR — load it
+  // after mount instead of in the initial state to avoid a hydration mismatch.
+  useEffect(() => {
+    function loadCart() {
+      setCart(readCartFromStorage());
+      setIsLoaded(true);
+    }
+
+    loadCart();
+  }, []);
 
   function updateCart(nextCart: CartItem[]) {
     setCart(nextCart);
@@ -92,7 +102,7 @@ export default function CartPage() {
           </h1>
         </div>
 
-        {cart.length === 0 ? (
+        {!isLoaded ? null : cart.length === 0 ? (
           <div className="rounded-[2rem] bg-white p-10 text-center shadow-sm">
             <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-[#f7f4ee]">
               <ShoppingBag className="h-7 w-7 text-[#9c7b4f]" />
