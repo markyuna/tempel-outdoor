@@ -167,7 +167,7 @@ export default async function CategoryProductsPage({
           </div>
 
           {products.length > 0 ? (
-            <div className="mt-10 grid items-stretch gap-7 md:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-10 grid items-stretch gap-7 md:grid-cols-2 lg:grid-cols-4">
               {products.map((product) => {
                 const image = getCoverImage(product.product_media);
 
@@ -187,7 +187,7 @@ export default async function CategoryProductsPage({
                           src={image.url}
                           alt={image.alt || product.name}
                           fill
-                          sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                          sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
                           className="object-cover transition duration-700 group-hover:scale-105"
                         />
                       ) : (

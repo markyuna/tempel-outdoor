@@ -109,7 +109,15 @@ export async function proxy(request: NextRequest) {
   }
 
   if (isAuthRoute && user) {
-    return NextResponse.redirect(new URL(`/${locale}/mon-compte`, request.url));
+    const redirectParam = request.nextUrl.searchParams.get("redirectTo");
+    const destination =
+      redirectParam &&
+      redirectParam.startsWith("/") &&
+      !redirectParam.startsWith("//")
+        ? redirectParam
+        : `/${locale}/mon-compte`;
+
+    return NextResponse.redirect(new URL(destination, request.url));
   }
 
   return response;

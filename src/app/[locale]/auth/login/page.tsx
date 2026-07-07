@@ -74,7 +74,7 @@ export default async function LoginPage({
               </div>
             ) : null}
 
-            <LoginForm />
+            <LoginForm redirectTo={redirectTo} />
 
             <div className="mt-5 text-center">
               <Link

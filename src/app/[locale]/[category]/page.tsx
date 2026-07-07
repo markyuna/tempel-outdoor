@@ -81,7 +81,7 @@ export default async function LoisirsCategoryPage({ params }: Props) {
           </div>
 
           {products && products.length > 0 ? (
-            <div className="mt-14 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-14 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
               {products.map((product) => {
                 const media = product.product_media?.sort(
                   (a, b) => (a.position ?? 0) - (b.position ?? 0)
@@ -101,7 +101,7 @@ export default async function LoisirsCategoryPage({ params }: Props) {
                           src={image.url}
                           alt={image.alt || product.name}
                           fill
-                          sizes="(max-width: 768px) 100vw, 33vw"
+                          sizes="(max-width: 768px) 100vw, 25vw"
                           className="object-cover transition duration-700 group-hover:scale-105"
                         />
                       ) : (

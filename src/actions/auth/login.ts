@@ -8,6 +8,7 @@ export async function login(formData: FormData) {
   const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
   const locale = String(formData.get("locale") || "fr");
+  const redirectTo = String(formData.get("redirectTo") || "");
 
   const supabase = await createClient();
 
@@ -22,5 +23,10 @@ export async function login(formData: FormData) {
     };
   }
 
-  redirect(`/${locale}/mon-compte`);
+  const destination =
+    redirectTo && redirectTo.startsWith("/") && !redirectTo.startsWith("//")
+      ? redirectTo
+      : `/${locale}/mon-compte`;
+
+  redirect(destination);
 }

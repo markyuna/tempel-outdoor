@@ -40,7 +40,9 @@ export async function register(formData: FormData) {
   }
 
   const destination =
-    redirectTo && redirectTo.startsWith("/") ? redirectTo : `/${locale}/mon-compte`;
+    redirectTo && redirectTo.startsWith("/") && !redirectTo.startsWith("//")
+      ? redirectTo
+      : `/${locale}/mon-compte`;
 
   redirect(destination);
 }
