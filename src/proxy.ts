@@ -8,7 +8,7 @@ import { routing } from "@/i18n/routing";
 
 const intlProxy = createMiddleware(routing);
 
-const protectedUserRoutes = ["/mon-compte"];
+const protectedUserRoutes = ["/mon-compte", "/checkout"];
 const authRoutes = ["/auth/login", "/auth/register"];
 
 function getLocaleAndPath(pathname: string) {

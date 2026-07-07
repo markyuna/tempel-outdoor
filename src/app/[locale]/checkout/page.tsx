@@ -1,5 +1,7 @@
 // src/app/[locale]/checkout/page.tsx
 
+import { redirect } from "next/navigation";
+
 import CheckoutForm from "@/components/checkout/CheckoutForm";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -59,6 +61,10 @@ export default async function CheckoutPage({ params }: CheckoutPageProps) {
 
   if (userError) {
     console.error("Erreur récupération utilisateur checkout:", userError);
+  }
+
+  if (!user) {
+    redirect(`/${locale}/auth/login?redirectTo=/${locale}/checkout`);
   }
 
   let profile: CheckoutProfile | null = null;
