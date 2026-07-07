@@ -20,6 +20,8 @@ const COLOR_LABELS: Record<string, string> = {
   terracotta: "Terracotta",
   moutarde: "Moutarde",
   "bleu-eau": "Bleu eau",
+  gris: "Gris — Mystic Mountain",
+  beige: "Beige — Sterling White",
 };
 
 const COLOR_HEX: Record<string, string> = {
@@ -28,6 +30,8 @@ const COLOR_HEX: Record<string, string> = {
   terracotta: "#b76545",
   moutarde: "#c99a35",
   "bleu-eau": "#7faeaa",
+  gris: "#8a8378",
+  beige: "#d9c9a8",
 };
 
 export type { ProductVariant };
@@ -71,7 +75,7 @@ export default function ProductVariantSelector({
               >
                 <span
                   className={`h-4 w-4 rounded-full border ${
-                    variant.value === "blanc"
+                    variant.value === "blanc" || variant.value === "beige"
                       ? "border-black/20"
                       : "border-white/50"
                   }`}
