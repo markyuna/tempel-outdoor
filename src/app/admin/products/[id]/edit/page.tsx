@@ -515,7 +515,11 @@ export default async function AdminProductEditPage({ params }: PageProps) {
             media={media ?? []}
           />
 
-          <ProductOptionsEditor productId={product.id} options={options ?? []} />
+          <ProductOptionsEditor
+            productId={product.id}
+            options={options ?? []}
+            media={media ?? []}
+          />
 
           <ProductSpecsEditor productId={product.id} sections={sections ?? []} />
         </div>

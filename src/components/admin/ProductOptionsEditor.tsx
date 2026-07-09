@@ -7,30 +7,61 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { ProductOption } from "@/types/product";
 
+type ProductMedia = {
+  id: string;
+  url: string;
+  alt: string | null;
+  type: "image" | "video";
+};
+
 type Props = {
   productId: string;
   options?: ProductOption[];
+  media?: ProductMedia[];
 };
 
-function formatOptionValue(label: string, price: string) {
-  const cleanLabel = label.trim();
-  const cleanPrice = price.trim();
+function parseOptionValue(value: string) {
+  const [label, price, imageMediaId, sizeToken] = value
+    .split("|")
+    .map((item) => item.trim());
+  return {
+    label: label || value,
+    price: price || "",
+    imageMediaId: imageMediaId || "",
+    sizeToken: sizeToken || "",
+  };
+}
 
-  if (!cleanPrice) return cleanLabel;
+function formatOptionValue(
+  label: string,
+  price: string,
+  imageMediaId: string,
+  sizeToken: string
+) {
+  const parts = [label.trim(), price.trim(), imageMediaId.trim(), sizeToken.trim()];
 
-  return `${cleanLabel} | ${cleanPrice}`;
+  while (parts.length > 1 && !parts[parts.length - 1]) {
+    parts.pop();
+  }
+
+  return parts.join(" | ");
 }
 
 export default function ProductOptionEditor({
   productId,
   options = [],
+  media = [],
 }: Props) {
   const router = useRouter();
   const supabase = createClient();
 
+  const imageMedia = media.filter((item) => item.type === "image");
+
   const [name, setName] = useState("");
   const [label, setLabel] = useState("");
   const [price, setPrice] = useState("");
+  const [imageMediaId, setImageMediaId] = useState("");
+  const [sizeToken, setSizeToken] = useState("");
   const [values, setValues] = useState<string[]>([]);
   const [required, setRequired] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -45,11 +76,13 @@ export default function ProductOptionEditor({
 
     setValues((currentValues) => [
       ...currentValues,
-      formatOptionValue(cleanLabel, price),
+      formatOptionValue(cleanLabel, price, imageMediaId, sizeToken),
     ]);
 
     setLabel("");
     setPrice("");
+    setImageMediaId("");
+    setSizeToken("");
   }
 
   function handleRemoveValue(valueToRemove: string) {
@@ -88,6 +121,8 @@ export default function ProductOptionEditor({
     setName("");
     setLabel("");
     setPrice("");
+    setImageMediaId("");
+    setSizeToken("");
     setValues([]);
     setRequired(false);
 
@@ -137,7 +172,7 @@ export default function ProductOptionEditor({
           />
         </div>
 
-        <div className="grid gap-4 md:grid-cols-[1fr_180px_auto] md:items-end">
+        <div className="grid gap-4 md:grid-cols-[1fr_120px_1fr_120px_auto] md:items-end">
           <div>
             <label className="mb-2 block text-sm font-medium">
               Valeur disponible
@@ -164,6 +199,41 @@ export default function ProductOptionEditor({
             />
           </div>
 
+          <div>
+            <label className="mb-2 block text-sm font-medium">
+              Image associée (optionnel)
+            </label>
+
+            <select
+              value={imageMediaId}
+              onChange={(event) => setImageMediaId(event.target.value)}
+              disabled={imageMedia.length === 0}
+              className="h-12 w-full rounded-2xl border bg-white px-4 outline-none transition focus:border-black"
+            >
+              <option value="">Aucune (garde l’image actuelle)</option>
+
+              {imageMedia.map((item, index) => (
+                <option key={item.id} value={item.id}>
+                  Image {index + 1} — {item.alt || item.id}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium">
+              Repère taille
+            </label>
+
+            <input
+              type="text"
+              value={sizeToken}
+              onChange={(event) => setSizeToken(event.target.value)}
+              placeholder="Ex: 120"
+              className="h-12 w-full rounded-2xl border px-4 outline-none transition focus:border-black"
+            />
+          </div>
+
           <button
             type="button"
             onClick={handleAddValue}
@@ -174,18 +244,33 @@ export default function ProductOptionEditor({
           </button>
         </div>
 
+        <p className="-mt-2 text-xs text-gray-500">
+          Si tu associes une image (ex : le schéma des dimensions), la galerie
+          basculera dessus quand le client choisit cette valeur. Le « repère
+          taille » (ex : 120) doit correspondre au suffixe entre parenthèses
+          utilisé dans la fiche technique (ex : « Poids (120) ») pour que la
+          fiche se filtre automatiquement selon la dimension choisie.
+        </p>
+
         {values.length > 0 && (
           <div className="flex flex-wrap gap-2">
-            {values.map((value) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => handleRemoveValue(value)}
-                className="rounded-full border bg-[#f7f4ee] px-4 py-2 text-sm text-gray-700 transition hover:border-red-300 hover:text-red-600"
-              >
-                {value}
-              </button>
-            ))}
+            {values.map((value) => {
+              const parsed = parseOptionValue(value);
+
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => handleRemoveValue(value)}
+                  className="rounded-full border bg-[#f7f4ee] px-4 py-2 text-sm text-gray-700 transition hover:border-red-300 hover:text-red-600"
+                >
+                  {parsed.label}
+                  {parsed.price ? ` — ${parsed.price}` : ""}
+                  {parsed.imageMediaId ? " (image liée)" : ""}
+                  {parsed.sizeToken ? ` [${parsed.sizeToken}]` : ""}
+                </button>
+              );
+            })}
           </div>
         )}
 
@@ -228,14 +313,21 @@ export default function ProductOptionEditor({
                 </div>
 
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {option.values.map((value) => (
-                    <span
-                      key={value}
-                      className="rounded-full border bg-white px-3 py-1 text-xs text-gray-700"
-                    >
-                      {value}
-                    </span>
-                  ))}
+                  {option.values.map((value) => {
+                    const parsed = parseOptionValue(value);
+
+                    return (
+                      <span
+                        key={value}
+                        className="rounded-full border bg-white px-3 py-1 text-xs text-gray-700"
+                      >
+                        {parsed.label}
+                        {parsed.price ? ` — ${parsed.price} €` : ""}
+                        {parsed.imageMediaId ? " (image liée)" : ""}
+                        {parsed.sizeToken ? ` [${parsed.sizeToken}]` : ""}
+                      </span>
+                    );
+                  })}
                 </div>
               </div>
 

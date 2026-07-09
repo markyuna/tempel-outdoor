@@ -10,7 +10,9 @@ import {
   ShoppingBag,
   Truck,
 } from "lucide-react";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
+
+import { useProductDimension } from "@/components/products/ProductDimensionContext";
 
 type ProductOption = {
   id: string;
@@ -45,6 +47,7 @@ type Props = {
   options: ProductOption[];
   initialIsFavorite?: boolean;
   locale?: string;
+  onOptionImageSelect?: (mediaId: string | null) => void;
 };
 
 import { CART_STORAGE_KEY, CART_UPDATED_EVENT } from "@/lib/cart";
@@ -57,12 +60,16 @@ function formatPrice(price: number) {
 }
 
 function parseOptionValue(value: string) {
-  const [label, priceValue] = value.split("|").map((item) => item.trim());
+  const [label, priceValue, imageMediaId, sizeToken] = value
+    .split("|")
+    .map((item) => item.trim());
   const price = priceValue ? Number(priceValue.replace(",", ".")) : null;
 
   return {
     label: label || value,
     price: Number.isFinite(price) ? price : null,
+    imageMediaId: imageMediaId || null,
+    sizeToken: sizeToken || null,
   };
 }
 
@@ -80,11 +87,13 @@ export default function ProductBuyBox({
   options,
   initialIsFavorite = false,
   locale = "fr",
+  onOptionImageSelect,
 }: Props) {
   const [added, setAdded] = useState(false);
   const [isFavorite, setIsFavorite] = useState(initialIsFavorite);
   const [favoriteError, setFavoriteError] = useState<string | null>(null);
   const [isFavoritePending, startFavoriteTransition] = useTransition();
+  const { setSelectedSizeToken } = useProductDimension();
 
   const sortedOptions = useMemo(
     () => [...options].sort((a, b) => (a.position ?? 0) - (b.position ?? 0)),
@@ -119,6 +128,19 @@ export default function ProductBuyBox({
       return acc;
     }, {});
   }, [selectedOptions, sortedOptions]);
+
+  const selectedSizeToken = useMemo(() => {
+    for (const selectedValue of Object.values(selectedOptions)) {
+      const parsed = parseOptionValue(selectedValue);
+      if (parsed.sizeToken) return parsed.sizeToken;
+    }
+
+    return null;
+  }, [selectedOptions]);
+
+  useEffect(() => {
+    setSelectedSizeToken(selectedSizeToken);
+  }, [selectedSizeToken, setSelectedSizeToken]);
 
   const hasDiscount = compareAtPrice && compareAtPrice > selectedPrice;
 
@@ -274,12 +296,13 @@ export default function ProductBuyBox({
                       <button
                         key={value}
                         type="button"
-                        onClick={() =>
+                        onClick={() => {
                           setSelectedOptions((current) => ({
                             ...current,
                             [option.id]: value,
-                          }))
-                        }
+                          }));
+                          onOptionImageSelect?.(parsed.imageMediaId);
+                        }}
                         className={`flex items-center justify-between rounded-2xl border px-4 py-3 text-left transition ${
                           isSelected
                             ? "border-black bg-black text-white"

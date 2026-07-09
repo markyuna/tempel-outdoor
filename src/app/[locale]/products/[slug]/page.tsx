@@ -6,7 +6,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, CheckCircle2, Sparkles } from "lucide-react";
 
-import ProductBuyBox from "@/components/products/ProductBuyBox";
+import { ProductDimensionProvider } from "@/components/products/ProductDimensionContext";
 import ProductPurchaseSection from "@/components/products/ProductPurchaseSection";
 import ProductSpecs from "@/components/products/ProductSpecs";
 import ProductStoryVideo from "@/components/products/ProductStoryVideo";
@@ -248,6 +248,18 @@ function sortOptions(options: ProductOption[]) {
   return [...options].sort((a, b) => a.position - b.position);
 }
 
+function getInitialSizeToken(options: ProductOption[]) {
+  for (const option of options) {
+    const firstValue = option.values[0];
+    if (!firstValue) continue;
+
+    const sizeToken = firstValue.split("|")[3]?.trim();
+    if (sizeToken) return sizeToken;
+  }
+
+  return null;
+}
+
 function getFeaturedImage(media: ProductMedia[]) {
   return (
     media.find((item) => item.type === "image" && item.is_featured)?.url ??
@@ -437,6 +449,7 @@ export default async function ProductPage({ params }: Props) {
 
   const isSpa = product.category === "spa";
   const isSauna = product.category === "sauna";
+  const initialSizeToken = getInitialSizeToken(options);
 
   const storyVideoUrl =
     CATEGORY_VIDEOS[product.category] ?? "/videos/tempel-outdoor.mp4";
@@ -474,51 +487,50 @@ export default async function ProductPage({ params }: Props) {
             Retour aux produits
           </Link>
 
-          <div className="mt-10 grid gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:items-start">
-            <ProductPurchaseSection
-              media={media}
-              variants={variants}
-              productName={product.name}
-            />
-
-            <ProductBuyBox
-              id={product.id}
-              name={product.name}
-              slug={product.slug}
-              image={featuredImage}
-              categoryLabel={getCategoryLabel(product.category)}
-              price={Number(product.price)}
-              compareAtPrice={product.compare_at_price}
-              stock={product.stock}
-              shortDescription={product.short_description}
-              deliveryTime={product.delivery_time}
-              options={options}
-              initialIsFavorite={initialIsFavorite}
-              locale={locale}
-            />
-          </div>
-
-          <ProductDescriptionSection
-            productName={product.name}
-            description={product.description}
-            universe={product.universe}
-          />
-
-          <section className="mt-20 grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-stretch">
-            {isSauna ? (
-              <ProductSaunaAtelierImage />
-            ) : isSpa ? (
-              <ProductSpaAtelierImage />
-            ) : (
-              <ProductStoryVideo
-                videoUrl={storyVideoUrl}
-                title="L'excellence du savoir-faire français."
-                description="Chaque produit est sélectionné pour offrir une expérience extérieure haut de gamme, alliant design, robustesse et confort."
+          <ProductDimensionProvider initialSizeToken={initialSizeToken}>
+            <div className="mt-10 grid gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:items-start">
+              <ProductPurchaseSection
+                media={media}
+                variants={variants}
+                productName={product.name}
+                id={product.id}
+                name={product.name}
+                slug={product.slug}
+                image={featuredImage}
+                categoryLabel={getCategoryLabel(product.category)}
+                price={Number(product.price)}
+                compareAtPrice={product.compare_at_price}
+                stock={product.stock}
+                shortDescription={product.short_description}
+                deliveryTime={product.delivery_time}
+                options={options}
+                initialIsFavorite={initialIsFavorite}
+                locale={locale}
               />
-            )}
+            </div>
 
-            <ProductSpecs sections={product.product_spec_sections} />
-          </section>
+            <ProductDescriptionSection
+              productName={product.name}
+              description={product.description}
+              universe={product.universe}
+            />
+
+            <section className="mt-20 grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-stretch">
+              {isSauna ? (
+                <ProductSaunaAtelierImage />
+              ) : isSpa ? (
+                <ProductSpaAtelierImage />
+              ) : (
+                <ProductStoryVideo
+                  videoUrl={storyVideoUrl}
+                  title="L'excellence du savoir-faire français."
+                  description="Chaque produit est sélectionné pour offrir une expérience extérieure haut de gamme, alliant design, robustesse et confort."
+                />
+              )}
+
+              <ProductSpecs sections={product.product_spec_sections} />
+            </section>
+          </ProductDimensionProvider>
 
           <section className="mt-8 grid gap-4 md:grid-cols-3">
             {[

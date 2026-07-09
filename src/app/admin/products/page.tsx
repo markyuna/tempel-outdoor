@@ -1,10 +1,45 @@
 import Link from "next/link";
 
-import DeleteProductButton from "@/components/admin/DeleteProductButton";
+import AdminProductsList from "@/components/admin/AdminProductsList";
 import { getProducts } from "@/lib/products";
+
+const CATEGORY_LABELS: Record<string, string> = {
+  spa: "Spa",
+  sauna: "Sauna",
+  "baby-foot": "Baby-foot",
+  billard: "Billard",
+  fitness: "Fitness",
+};
+
+const CATEGORY_ORDER = ["spa", "sauna", "billard", "baby-foot", "fitness"];
+
+function getCategoryLabel(category: string) {
+  return CATEGORY_LABELS[category] || category || "Sans catégorie";
+}
 
 export default async function AdminProductsPage() {
   const products = await getProducts();
+
+  const categories = Array.from(
+    new Set(products.map((product) => product.category || "sans-categorie"))
+  ).sort((a, b) => {
+    const indexA = CATEGORY_ORDER.indexOf(a);
+    const indexB = CATEGORY_ORDER.indexOf(b);
+
+    if (indexA === -1 && indexB === -1) return a.localeCompare(b);
+    if (indexA === -1) return 1;
+    if (indexB === -1) return -1;
+
+    return indexA - indexB;
+  });
+
+  const groups = categories.map((category) => ({
+    category,
+    label: getCategoryLabel(category),
+    products: products.filter(
+      (product) => (product.category || "sans-categorie") === category
+    ),
+  }));
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-16">
@@ -24,93 +59,13 @@ export default async function AdminProductsPage() {
         </Link>
       </div>
 
-      <div className="mt-10 overflow-hidden rounded-3xl border border-black/10 bg-white shadow-sm">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b bg-[#181512] text-white">
-              <th className="p-4 text-left text-xs font-semibold uppercase tracking-[0.18em]">Nom</th>
-              <th className="p-4 text-left text-xs font-semibold uppercase tracking-[0.18em]">Univers</th>
-              <th className="p-4 text-left text-xs font-semibold uppercase tracking-[0.18em]">Catégorie</th>
-              <th className="p-4 text-left text-xs font-semibold uppercase tracking-[0.18em]">Prix</th>
-              <th className="p-4 text-left text-xs font-semibold uppercase tracking-[0.18em]">Stock</th>
-              <th className="p-4 text-left text-xs font-semibold uppercase tracking-[0.18em]">Statut</th>
-              <th className="p-4 text-left text-xs font-semibold uppercase tracking-[0.18em]">Actions</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {products.map((product) => (
-              <tr
-                key={product.id}
-                className="border-b border-black/10 transition hover:bg-[#f7f4ee]"
-              >
-                <td className="p-4 font-medium text-[#181512]">{product.name}</td>
-
-                <td className="p-4 capitalize text-black/60">
-                  {product.universe || "—"}
-                </td>
-
-                <td className="p-4 capitalize text-black/60">
-                  {product.category || "—"}
-                </td>
-
-                <td className="p-4 font-semibold text-[#181512]">
-                  {product.price.toLocaleString("fr-FR")} €
-                </td>
-
-                <td className="p-4 text-black/60">{product.stock}</td>
-
-                <td className="p-4">
-                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                    product.status === "active"
-                      ? "bg-emerald-100 text-emerald-800"
-                      : product.status === "draft"
-                      ? "bg-amber-100 text-amber-800"
-                      : "bg-neutral-100 text-neutral-600"
-                  }`}>
-                    {product.status === "active" ? "Actif" : product.status === "draft" ? "Brouillon" : "Archivé"}
-                  </span>
-                </td>
-
-                <td className="p-4">
-                  <div className="flex items-center gap-2">
-                    <Link
-                      href={`/admin/products/${product.id}/edit`}
-                      className="rounded-full bg-black px-4 py-2 text-xs font-semibold text-white transition hover:opacity-90"
-                    >
-                      Modifier
-                    </Link>
-
-                    <Link
-                      href={`/fr/products/${product.slug}`}
-                      target="_blank"
-                      className="rounded-full border border-black/10 px-4 py-2 text-xs font-semibold transition hover:bg-black/5"
-                    >
-                      Voir
-                    </Link>
-
-                    <DeleteProductButton
-                      productId={product.id}
-                      productName={product.name}
-                    />
-                  </div>
-                </td>
-              </tr>
-            ))}
-
-            {products.length === 0 && (
-              <tr>
-                <td
-                  colSpan={7}
-                  className="p-10 text-center text-sm text-black/50"
-                >
-                  Aucun produit pour le moment.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      {products.length === 0 ? (
+        <div className="mt-10 rounded-3xl border border-black/10 bg-white p-10 text-center text-sm text-black/50 shadow-sm">
+          Aucun produit pour le moment.
+        </div>
+      ) : (
+        <AdminProductsList groups={groups} />
+      )}
     </main>
   );
 }

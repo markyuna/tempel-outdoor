@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 
+import ProductBuyBox from "@/components/products/ProductBuyBox";
 import ProductMediaGallery from "@/components/products/ProductMediaGallery";
 import ProductVariantSelector from "@/components/products/ProductVariantSelector";
 
@@ -22,16 +23,38 @@ type ProductVariant = {
   position: number | null;
 };
 
+type ProductOption = {
+  id: string;
+  name: string;
+  values: string[];
+  required: boolean;
+  position: number;
+};
+
 type Props = {
   media: ProductMedia[];
   variants: ProductVariant[];
   productName: string;
+  id: string;
+  name: string;
+  slug: string;
+  image?: string | null;
+  categoryLabel: string;
+  price: number;
+  compareAtPrice: number | null;
+  stock: number;
+  shortDescription: string | null;
+  deliveryTime: string | null;
+  options: ProductOption[];
+  initialIsFavorite?: boolean;
+  locale?: string;
 };
 
 export default function ProductPurchaseSection({
   media,
   variants,
   productName,
+  ...buyBoxProps
 }: Props) {
   const sortedVariants = useMemo(
     () => [...variants].sort((a, b) => (a.position ?? 0) - (b.position ?? 0)),
@@ -50,24 +73,35 @@ export default function ProductPurchaseSection({
     setSelectedMediaId(variant.image_media_id);
   }
 
-  return (
-    <div className="w-full max-w-[640px]">
-      <ProductMediaGallery
-        media={media}
-        productName={productName}
-        selectedMediaId={selectedMediaId}
-        onSelectMedia={setSelectedMediaId}
-      />
+  function handleOptionImageSelect(mediaId: string | null) {
+    if (mediaId) setSelectedMediaId(mediaId);
+  }
 
-      {sortedVariants.length > 0 && (
-        <div className="mt-6">
-          <ProductVariantSelector
-            variants={sortedVariants}
-            selectedVariantId={selectedVariant?.id}
-            onSelect={handleSelectVariant}
-          />
-        </div>
-      )}
-    </div>
+  return (
+    <>
+      <div className="w-full max-w-[640px]">
+        <ProductMediaGallery
+          media={media}
+          productName={productName}
+          selectedMediaId={selectedMediaId}
+          onSelectMedia={setSelectedMediaId}
+        />
+
+        {sortedVariants.length > 0 && (
+          <div className="mt-6">
+            <ProductVariantSelector
+              variants={sortedVariants}
+              selectedVariantId={selectedVariant?.id}
+              onSelect={handleSelectVariant}
+            />
+          </div>
+        )}
+      </div>
+
+      <ProductBuyBox
+        {...buyBoxProps}
+        onOptionImageSelect={handleOptionImageSelect}
+      />
+    </>
   );
 }

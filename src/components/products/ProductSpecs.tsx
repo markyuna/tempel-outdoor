@@ -1,5 +1,9 @@
 // src/components/products/ProductSpecs.tsx
 
+"use client";
+
+import { useProductDimension } from "@/components/products/ProductDimensionContext";
+
 type ProductSpecItem = {
   id: string;
   label: string | null;
@@ -18,14 +22,32 @@ type Props = {
   sections: ProductSpecSection[] | null;
 };
 
+const SIZE_SUFFIX_PATTERN = /\s*\((\w+)\)\s*$/;
+
+function stripSizeSuffix(label: string) {
+  return label.replace(SIZE_SUFFIX_PATTERN, "").trim();
+}
+
 export default function ProductSpecs({ sections }: Props) {
+  const { selectedSizeToken } = useProductDimension();
+
   const sortedSections = [...(sections ?? [])]
     .sort((a, b) => (a.position ?? 999) - (b.position ?? 999))
     .map((section) => ({
       ...section,
       items: [...(section.product_spec_items ?? [])]
         .sort((a, b) => (a.position ?? 999) - (b.position ?? 999))
-        .filter((item) => item.value.trim().length > 0),
+        .filter((item) => item.value.trim().length > 0)
+        .filter((item) => {
+          const match = item.label?.match(SIZE_SUFFIX_PATTERN);
+          if (!match) return true;
+          if (!selectedSizeToken) return true;
+          return match[1] === selectedSizeToken;
+        })
+        .map((item) => ({
+          ...item,
+          label: item.label ? stripSizeSuffix(item.label) : item.label,
+        })),
     }))
     .filter((section) => section.items.length > 0);
 
